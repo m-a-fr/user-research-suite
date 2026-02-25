@@ -4,8 +4,8 @@ import { useState, useRef, useEffect } from "react";
 
 /* ━━━ DESIGN TOKENS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const T = {
-  bg:"#FFFFFF",bg2:"#F7F8FC",bg3:"#EDEEF5",
-  ink:"#0A0A14",ink2:"#3D3D5C",muted:"#8B8BAD",border:"#E2E4F0",
+  bg:"#FFFFFF",bg2:"#F8F9FD",bg3:"#EDEEF5",
+  ink:"#111827",ink2:"#374151",muted:"#6B7280",border:"#E5E7EB",
   accent:"#4F46E5",accent2:"#818CF8",
   ok:"#059669",warn:"#D97706",danger:"#DC2626",
   ff:"'Inter',system-ui,sans-serif",
@@ -253,10 +253,10 @@ const initData = () => ({
 });
 
 /* ━━━ SLIDE ATOMS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-const Lbl = ({c,color=T.muted}) => <div style={{fontFamily:T.ff,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color,marginBottom:5}}>{c}</div>;
+const Lbl = ({c,color=T.muted}) => <div style={{fontFamily:T.ff,fontSize:11,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color,marginBottom:6}}>{c}</div>;
 const Rule = ({color=T.accent,h=2,w=40,my=12}:{color?:string,h?:number,w?:number|string,my?:number}) => <div style={{height:h,width:w,background:color,borderRadius:1,margin:`${my}px 0`}}/>;
 const Chip = ({c,color=T.accent}) => <span style={{fontFamily:T.ff,fontSize:9,fontWeight:700,color,background:`${color}14`,border:`1px solid ${color}28`,borderRadius:4,padding:"2px 8px",display:"inline-block"}}>{c}</span>;
-const Body = ({c,size=11,lh=1.8,color=T.ink2}) => <p style={{fontFamily:T.ff,fontSize:size,color,lineHeight:lh,margin:0,whiteSpace:"pre-line"}}>{c||"—"}</p>;
+const Body = ({c,size=12,lh=1.75,color=T.ink2}) => <p style={{fontFamily:T.ff,fontSize:size,color,lineHeight:lh,margin:0,whiteSpace:"pre-line"}}>{c||"—"}</p>;
 const Shell = ({children}) => (
   <div style={{fontFamily:T.ff,width:"100%",height:"100%",background:T.bg,display:"flex",flexDirection:"column",position:"relative",boxSizing:"border-box"}}>
     <div style={{position:"absolute",top:0,left:0,right:0,height:4,background:T.accent,zIndex:2}}/>
@@ -582,6 +582,57 @@ const buildBriefSlides = (d, ai) => {
   ];
 };
 
+/* ━━━ PDF UTILITIES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+const PDF_STYLES = `
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:#111827;background:#fff;padding:40px 48px;font-size:13px;line-height:1.7}
+h1{font-size:24px;font-weight:900;color:#111827;letter-spacing:-0.02em;margin-bottom:6px}
+h2{font-size:17px;font-weight:800;color:#111827;letter-spacing:-0.01em;margin:32px 0 14px;padding-bottom:8px;border-bottom:2px solid #E5E7EB}
+h3{font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:0.1em;margin:16px 0 8px}
+p{font-size:13px;color:#374151;line-height:1.75;margin:4px 0}
+strong{font-weight:700;color:#111827}
+.meta{font-size:11px;color:#6B7280}
+.badge{display:inline-block;font-size:10px;font-weight:700;background:#EEF2FF;color:#4F46E5;border-radius:4px;padding:2px 9px;margin-right:4px}
+.badge-ok{background:#F0FDF4;color:#059669}
+.badge-danger{background:#FEF2F2;color:#DC2626}
+.badge-warn{background:#FFFBEB;color:#D97706}
+.badge-muted{background:#F3F4F6;color:#6B7280}
+.section{margin-bottom:28px;padding:20px 24px;border:1px solid #E5E7EB;border-radius:12px;background:#fff}
+.card{background:#F8F9FD;border-radius:8px;padding:12px 16px;margin:8px 0;border:1px solid #E5E7EB}
+.card-accent{background:#EEF2FF;border-left:3px solid #4F46E5}
+.card-ok{background:#F0FDF4;border-left:3px solid #059669}
+.card-danger{background:#FEF2F2;border-left:3px solid #DC2626}
+.card-warn{background:#FFFBEB;border-left:3px solid #D97706}
+.q-item{background:#fff;border:1px solid #E5E7EB;border-radius:6px;padding:10px 14px;margin:6px 0}
+.q-fmt{font-size:11px;color:#4F46E5;margin-top:5px}
+.task-card{border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;margin:14px 0}
+.task-header{background:#111827;color:#fff;padding:12px 18px;font-size:14px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+.task-body{padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.verdict-go{color:#059669}.verdict-nogo{color:#DC2626}.verdict-iter{color:#D97706}
+.cover-bar{height:4px;background:#4F46E5;border-radius:2px;width:48px;margin:12px 0}
+@media print{@page{margin:15mm}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-break{page-break-inside:avoid}.page-break{page-break-after:always}}
+`;
+
+const openPrintWindow = (title, htmlBody) => {
+  const w = window.open("","_blank","width=960,height=700");
+  if (!w) { alert("Autorisez les popups pour exporter en PDF."); return; }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>${PDF_STYLES}</style></head><body>${htmlBody}</body></html>`);
+  w.document.close();
+  setTimeout(()=>{ w.focus(); w.print(); }, 900);
+};
+
+const loadScript = (src) => new Promise((resolve, reject) => {
+  if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+  const s = document.createElement("script");
+  s.src = src; s.async = true; s.onload = resolve; s.onerror = reject;
+  document.head.appendChild(s);
+});
+
 /* ━━━ PROTOCOL VIEWER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const ProtocolViewer = ({protocol, onEdit, onUseBrief, onAnalyse, onBack}) => {
   const [editing, setEditing]   = useState(null);
@@ -596,6 +647,29 @@ const ProtocolViewer = ({protocol, onEdit, onUseBrief, onAnalyse, onBack}) => {
   const chatBottomRef = useRef(null);
 
   useEffect(() => { chatBottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [chatMessages]);
+
+  /* ── Export PDF ── */
+  const exportProtocolPDF = () => {
+    const qText = q => typeof q==="string" ? q : (q?.question||"");
+    const qFmt  = q => typeof q==="object" && q?.responseFormat ? `<div class="q-fmt">↳ ${q.responseFormat}</div>` : "";
+    const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const body = `
+<div style="border-bottom:3px solid #4F46E5;padding-bottom:22px;margin-bottom:36px">
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#6B7280;margin-bottom:8px">Protocole de test utilisateur</div>
+  <h1>${escHtml(proto.title)}</h1>
+  <p class="meta" style="margin-top:4px">${escHtml(proto.platform)} · ${escHtml(proto.duration)}</p>
+  ${proto.objective?`<p style="margin-top:14px;font-size:14px;background:#EEF2FF;color:#374151;padding:14px 18px;border-radius:10px;border-left:4px solid #4F46E5">${escHtml(proto.objective)}</p>`:""}
+</div>
+${proto.hypotheses?.length?`<div class="section no-break"><h2>Hypothèses de recherche</h2>${proto.hypotheses.map((h,i)=>`<div class="card card-accent"><span class="badge">H${i+1}</span> ${escHtml(h)}</div>`).join("")}</div>`:""}
+${(proto.recruitingCriteria?.length||proto.screeners?.length)?`<div class="section"><h2>Recrutement</h2>${proto.recruitingCriteria?.length?`<h3>Critères d'inclusion / exclusion</h3>${proto.recruitingCriteria.map(c=>`<div class="q-item"><p>• ${escHtml(c)}</p></div>`).join("")}`:""} ${proto.screeners?.length?`<h3 style="margin-top:16px">Screeners</h3>${proto.screeners.map((s,i)=>`<div class="q-item no-break"><p><strong>Q${i+1}.</strong> ${escHtml(s.question)}</p><p class="q-fmt">Format : ${escHtml(s.responseFormat)}</p><p style="font-size:11px;color:#059669;margin-top:4px">✓ ${escHtml(s.qualifying||"—")}</p><p style="font-size:11px;color:#DC2626">✕ ${escHtml(s.disqualifying||"—")}</p></div>`).join("")}`:""}  </div>`:""}
+${proto.intro||proto.warmUpQuestions?.length?`<div class="section"><h2>Introduction &amp; Warm-up</h2>${proto.intro?`<h3>Script d'introduction</h3><div class="card" style="white-space:pre-line;line-height:1.8">${escHtml(proto.intro)}</div>`:""}${proto.warmUpQuestions?.length?`<h3 style="margin-top:16px">Questions warm-up</h3>${proto.warmUpQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}`:""}</div>`:""}
+${proto.tasks?.length?`<div class="section"><h2>Tâches &amp; Scénarios</h2>${proto.tasks.map(task=>`<div class="task-card no-break"><div class="task-header"><span>Tâche ${task.id} — ${escHtml(task.title)}</span>${task.metrics?.length?`<span style="font-size:11px;font-weight:400;opacity:.65">${task.metrics.join(" · ")}</span>`:""}</div><div class="task-body">${task.scenario?`<p><strong>Scénario :</strong> ${escHtml(task.scenario)}</p>`:""}<p><strong>Instruction :</strong> ${escHtml(task.instruction||"—")}</p>${task.thinkAloudPrompt?`<p style="background:#FFFBEB;padding:8px 12px;border-radius:6px;font-size:12px"><strong style="color:#D97706">💬 Think-aloud :</strong> ${escHtml(task.thinkAloudPrompt)}</p>`:""} ${task.successCriteria?`<p style="color:#059669"><strong>✓ Critère de succès :</strong> ${escHtml(task.successCriteria)}</p>`:""} ${task.postTaskQuestions?.length?`<div><h3>Questions post-tâche</h3>${task.postTaskQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}</div>`:""} ${task.followUpQuestions?.length?`<div><h3>Questions de relance</h3>${task.followUpQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}</div>`:""}</div></div>`).join("")}</div>`:""}
+${proto.closingQuestions?.length?`<div class="section no-break"><h2>Questions de clôture</h2>${proto.closingQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}</div>`:""}
+${proto.kpis?`<div class="section no-break"><h2>KPIs &amp; Mesures</h2><div class="three-col" style="margin-top:12px"><div><h3 style="color:#4F46E5">Quantitatifs</h3>${(proto.kpis.quantitatifs||[]).map(k=>`<div class="card"><p style="font-weight:600">${escHtml(k.label)}</p>${k.cible?`<span class="badge" style="margin-top:4px;display:inline-block">Cible : ${escHtml(k.cible)}</span>`:""}</div>`).join("")}</div><div><h3>Qualitatifs</h3>${(proto.kpis.qualitatifs||[]).map(q=>`<div class="card"><p>• ${escHtml(q)}</p></div>`).join("")}</div><div><h3 style="color:#059669">KPI Business</h3>${(proto.kpis.kpiBusiness||[]).map(k=>`<div class="card"><p style="font-weight:600">${escHtml(k.label)}</p>${k.lien?`<p class="meta">${escHtml(k.lien)}</p>`:""}</div>`).join("")}</div></div></div>`:""}
+${proto.methodology?`<div class="section"><h2>Risques &amp; Plan d'analyse</h2>${proto.methodology.risks?`<h3>Risques méthodologiques</h3><div class="card card-danger" style="white-space:pre-line">${escHtml(proto.methodology.risks)}</div>`:""} ${proto.methodology.analysisPlan?`<h3>Plan d'analyse</h3><div class="card card-accent" style="white-space:pre-line">${escHtml(proto.methodology.analysisPlan)}</div>`:""}</div>`:""}
+    `;
+    openPrintWindow(proto.title||"Protocole", body);
+  };
 
   /* ── Inline edit ── */
   const startEdit = (path, val) => { setEditing(path); setEditVal(typeof val === "string" ? val : ""); };
@@ -834,6 +908,9 @@ Retourne le protocole complet modifie.`;
           }} style={{background:T.bg,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
             &#8659; JSON
           </button>
+          <button onClick={exportProtocolPDF} style={{background:T.bg,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+            &#8659; PDF
+          </button>
           <button onClick={()=>onUseBrief(proto)} style={{background:T.ok,color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
             &#8594; Brief Builder
           </button>
@@ -853,14 +930,14 @@ Retourne le protocole complet modifie.`;
             {/* Missing info banner */}
             {proto.missingInfo?.length > 0 && (
               <div style={{background:`${T.warn}10`,border:`1px solid ${T.warn}40`,borderLeft:`3px solid ${T.warn}`,borderRadius:8,padding:"12px 16px"}}>
-                <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:T.warn,marginBottom:6}}>&#9888; Elements inferes</div>
-                {proto.missingInfo.map((m,i)=><div key={i} style={{fontSize:11,color:T.ink2,lineHeight:1.6}}>&#8226; {m}</div>)}
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:T.warn,marginBottom:6}}>&#9888; Elements inferes</div>
+                {proto.missingInfo.map((m,i)=><div key={i} style={{fontSize:13,color:T.ink2,lineHeight:1.6}}>&#8226; {m}</div>)}
               </div>
             )}
 
             {/* Objectif */}
             <div style={{background:T.accent,borderRadius:12,padding:"18px 22px"}}>
-              <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color:"rgba(255,255,255,0.45)",marginBottom:6}}>Objectif &middot; {proto.platform} &middot; {proto.duration}</div>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)",marginBottom:8}}>Objectif &middot; {proto.platform} &middot; {proto.duration}</div>
               <EditableText value={proto.objective||""} path={{type:"objective"}} style={{color:"#fff"}}/>
             </div>
 
@@ -883,7 +960,7 @@ Retourne le protocole complet modifie.`;
             <Section title="&#128101; Recrutement">
               <div style={{display:"grid",gridTemplateColumns:proto.screeners?.length?"1fr 1fr":"1fr",gap:16}}>
                 <div>
-                  <div style={{fontSize:10,fontWeight:700,color:T.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.1em"}}>Criteres inclusion / exclusion</div>
+                  <div style={{fontSize:11,fontWeight:700,color:T.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.1em"}}>Criteres inclusion / exclusion</div>
                   <div style={{display:"flex",flexDirection:"column",gap:6}}>
                     {(proto.recruitingCriteria||[]).map((c,i)=>(
                       <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",background:T.bg,borderRadius:7,padding:"8px 12px",border:`1px solid ${T.border}`,position:"relative"}}>
@@ -898,7 +975,7 @@ Retourne le protocole complet modifie.`;
                 </div>
                 {(proto.screeners?.length > 0) && (
                   <div>
-                    <div style={{fontSize:10,fontWeight:700,color:T.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.1em"}}>Screeners</div>
+                    <div style={{fontSize:11,fontWeight:700,color:T.muted,marginBottom:8,textTransform:"uppercase",letterSpacing:"0.1em"}}>Screeners</div>
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
                       {proto.screeners.map((s,i)=>(
                         <div key={i} style={{background:T.bg,borderRadius:8,border:`1px solid ${T.border}`,overflow:"hidden",position:"relative"}}>
@@ -990,14 +1067,14 @@ Retourne le protocole complet modifie.`;
                   <div style={{padding:"14px 18px",display:"flex",flexDirection:"column",gap:12}}>
                     {task.scenario && (
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:T.accent2,marginBottom:4}}>&#127757; Scenario</div>
+                        <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:T.accent2,marginBottom:4}}>&#127757; Scenario</div>
                         <div style={{background:`${T.accent}06`,borderRadius:7,padding:"8px 12px",border:`1px solid ${T.accent}20`}}>
                           <EditableText value={task.scenario} path={{type:"taskScenario",taskIdx:ti}} multiline/>
                         </div>
                       </div>
                     )}
                     <div>
-                      <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:T.muted,marginBottom:4}}>&#128203; Instruction</div>
+                      <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:T.muted,marginBottom:4}}>&#128203; Instruction</div>
                       <div style={{background:T.bg2,borderRadius:7,padding:"4px 6px",border:`1px solid ${T.border}`}}>
                         <EditableText value={task.instruction||""} path={{type:"taskInstruction",taskIdx:ti}} multiline/>
                       </div>
@@ -1009,13 +1086,13 @@ Retourne le protocole complet modifie.`;
                     )}
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:T.ok,marginBottom:4}}>&#10003; Critere de succes</div>
+                        <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:T.ok,marginBottom:4}}>&#10003; Critere de succes</div>
                         <div style={{background:`${T.ok}06`,borderRadius:7,padding:"4px 6px",border:`1px solid ${T.ok}20`}}>
                           <EditableText value={task.successCriteria||""} path={{type:"taskSuccess",taskIdx:ti}}/>
                         </div>
                       </div>
                       <div>
-                        <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:T.muted,marginBottom:4}}>&#128202; Questions post-tache</div>
+                        <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:T.muted,marginBottom:4}}>&#128202; Questions post-tache</div>
                         <div style={{display:"flex",flexDirection:"column",gap:4}}>
                           {(task.postTaskQuestions||[]).map((q,qi)=>(
                             <QItem key={qi} q={q} editPath={{type:"postTask",taskIdx:ti,qIdx:qi}} section="postTask" idx={qi} taskIdx={ti}/>
@@ -1025,7 +1102,7 @@ Retourne le protocole complet modifie.`;
                       </div>
                     </div>
                     <div>
-                      <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:T.muted,marginBottom:4}}>&#128172; Questions de relance</div>
+                      <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.10em",textTransform:"uppercase",color:T.muted,marginBottom:4}}>&#128172; Questions de relance</div>
                       <div style={{display:"flex",flexDirection:"column",gap:5}}>
                         {(task.followUpQuestions||[]).map((q,qi)=>(
                           <QItem key={qi} q={q} editPath={{type:"followUp",taskIdx:ti,qIdx:qi}} section="followUp" idx={qi} taskIdx={ti}/>
@@ -1054,16 +1131,16 @@ Retourne le protocole complet modifie.`;
               <Section title="&#128207; KPIs & Mesures">
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
                   <div style={{background:T.bg,borderRadius:8,padding:14,border:`1px solid ${T.border}`}}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.accent,marginBottom:10}}>Quantitatifs</div>
-                    {(proto.kpis.quantitatifs||[]).map((k,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:700,color:T.ink}}>{k.label}</div>{k.cible&&<div style={{fontSize:9,fontWeight:700,color:T.accent,background:`${T.accent}0D`,borderRadius:3,padding:"1px 6px",display:"inline-block",marginTop:3}}>Cible : {k.cible}</div>}</div>)}
+                    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.accent,marginBottom:10}}>Quantitatifs</div>
+                    {(proto.kpis.quantitatifs||[]).map((k,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:13,fontWeight:700,color:T.ink}}>{k.label}</div>{k.cible&&<div style={{fontSize:10,fontWeight:700,color:T.accent,background:`${T.accent}0D`,borderRadius:3,padding:"1px 6px",display:"inline-block",marginTop:3}}>Cible : {k.cible}</div>}</div>)}
                   </div>
                   <div style={{background:T.bg,borderRadius:8,padding:14,border:`1px solid ${T.border}`}}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.ink,marginBottom:10}}>Qualitatifs</div>
-                    {(proto.kpis.qualitatifs||[]).map((k,i)=><div key={i} style={{fontSize:11,color:T.ink2,marginBottom:6,lineHeight:1.5}}>&#8226; {k}</div>)}
+                    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.ink,marginBottom:10}}>Qualitatifs</div>
+                    {(proto.kpis.qualitatifs||[]).map((k,i)=><div key={i} style={{fontSize:13,color:T.ink2,marginBottom:6,lineHeight:1.6}}>&#8226; {k}</div>)}
                   </div>
                   <div style={{background:T.bg,borderRadius:8,padding:14,border:`1px solid ${T.border}`}}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.ok,marginBottom:10}}>KPI Business</div>
-                    {(proto.kpis.kpiBusiness||[]).map((k,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:11,fontWeight:700,color:T.ink}}>{k.label}</div>{k.lien&&<div style={{fontSize:9,color:T.muted,lineHeight:1.5,marginTop:2}}>{k.lien}</div>}</div>)}
+                    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.ok,marginBottom:10}}>KPI Business</div>
+                    {(proto.kpis.kpiBusiness||[]).map((k,i)=><div key={i} style={{marginBottom:8}}><div style={{fontSize:13,fontWeight:700,color:T.ink}}>{k.label}</div>{k.lien&&<div style={{fontSize:11,color:T.muted,lineHeight:1.5,marginTop:2}}>{k.lien}</div>}</div>)}
                   </div>
                 </div>
               </Section>
@@ -1074,11 +1151,11 @@ Retourne le protocole complet modifie.`;
               <Section title="&#9888;&#65039; Risques & Plan d&apos;analyse">
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
                   <div style={{background:`${T.danger}06`,borderRadius:8,padding:14,border:`1px solid ${T.danger}20`}}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.danger,marginBottom:8}}>Risques methodologiques</div>
+                    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.danger,marginBottom:8}}>Risques methodologiques</div>
                     <EditableText value={proto.methodology.risks||""} path={{type:"risks"}} multiline/>
                   </div>
                   <div style={{background:`${T.accent}06`,borderRadius:8,padding:14,border:`1px solid ${T.accent}20`}}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.accent,marginBottom:8}}>&#129504; Plan d&apos;analyse</div>
+                    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.accent,marginBottom:8}}>&#129504; Plan d&apos;analyse</div>
                     <EditableText value={proto.methodology.analysisPlan||""} path={{type:"analysisPlan"}} multiline/>
                   </div>
                 </div>
@@ -1146,10 +1223,10 @@ Retourne le protocole complet modifie.`;
 };
 
 const Section = ({title,subtitle,children}) => (
-  <div>
-    <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:12}}>
-      <div style={{fontSize:13,fontWeight:800,color:T.ink}}>{title}</div>
-      {subtitle&&<div style={{fontSize:10,color:T.muted,fontStyle:"italic"}}>{subtitle}</div>}
+  <div style={{borderRadius:12,border:`1px solid ${T.border}`,background:T.bg,padding:"20px 22px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
+    <div style={{display:"flex",alignItems:"baseline",gap:10,marginBottom:14,paddingBottom:12,borderBottom:`1px solid ${T.border}`}}>
+      <div style={{fontSize:15,fontWeight:800,color:T.ink,letterSpacing:"-0.01em"}}>{title}</div>
+      {subtitle&&<div style={{fontSize:11,color:T.muted,fontStyle:"italic"}}>{subtitle}</div>}
     </div>
     {children}
   </div>
@@ -1340,12 +1417,45 @@ const ProtocolChat = ({onProtocolReady, onBack}) => {
 };
 
 /* ━━━ SLIDES SCREEN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, setAiContent, openSlides, onBack}) => {
+const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, setAiContent, openSlides, onBack, briefData}) => {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
   const chatBottomRef = useRef(null);
+  const slideContainerRef = useRef(null);
+
+  const exportSlidesPDF = async () => {
+    if (pdfExporting) return;
+    setPdfExporting(true);
+    try {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+      const pdfW = pdf.internal.pageSize.getWidth();
+      const pdfH = pdf.internal.pageSize.getHeight();
+      const origIdx = slideIdx;
+      for (let i = 0; i < slides.length; i++) {
+        setSlideIdx(i);
+        await new Promise(r => setTimeout(r, 180));
+        if (!slideContainerRef.current) continue;
+        const canvas = await window.html2canvas(slideContainerRef.current, {
+          scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false,
+        });
+        const imgData = canvas.toDataURL("image/png");
+        if (i > 0) pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      }
+      setSlideIdx(origIdx);
+      const filename = ((briefData?.projectName)||"brief").replace(/[^a-z0-9]/gi,"_").toLowerCase()+"_slides.pdf";
+      pdf.save(filename);
+    } catch(e) {
+      alert(`Erreur export PDF : ${e.message}`);
+    }
+    setPdfExporting(false);
+  };
 
   useEffect(() => { chatBottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [chatMessages]);
 
@@ -1386,6 +1496,10 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
           {supervising&&<div style={{display:"flex",alignItems:"center",gap:6,background:`${T.accent}10`,border:`1px solid ${T.accent}30`,borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:12}}>{"\u2736"}</span><span style={{fontSize:10,color:T.accent,fontWeight:600}}>Supervision IA</span></div>}
           {!supervising&&aiContent&&<div style={{display:"flex",alignItems:"center",gap:6,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:10}}>✓</span><span style={{fontSize:10,color:T.ok,fontWeight:600}}>Supervise</span></div>}
           <span style={{fontSize:11,color:T.muted}}>{slideIdx+1} / {slides.length}</span>
+          <button onClick={exportSlidesPDF} disabled={pdfExporting||supervising}
+            style={{background:T.bg,color:pdfExporting?T.muted:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 14px",cursor:pdfExporting||supervising?"default":"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6,opacity:supervising?.5:1}}>
+            {pdfExporting?"Export...":"↓ PDF"}
+          </button>
           <button onClick={()=>setPanelOpen(p=>!p)}
             style={{background:panelOpen?T.accent:T.bg,color:panelOpen?"#fff":T.ink2,border:`1px solid ${panelOpen?T.accent:T.border}`,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6,transition:"all .15s"}}>
             {"\u2736"} {panelOpen?"Fermer":"Modifier avec IA"}
@@ -1401,7 +1515,7 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
                 <div style={{fontFamily:T.ff,fontSize:14,fontWeight:700,color:T.ink}}>Claude supervise la mise en forme</div>
                 <div style={{fontFamily:T.ff,fontSize:11,color:T.muted,maxWidth:320}}>Reformulation des titres, hierarchie typographique, synthese du contenu.</div>
               </div>
-            : <div style={{width:"100%",maxWidth:panelOpen?780:960,aspectRatio:"16/9",borderRadius:12,overflow:"hidden",boxShadow:"0 4px 6px rgba(0,0,0,.04),0 20px 50px rgba(0,0,0,.10),0 0 0 1px #E2E4F0",transition:"max-width .25s"}}>
+            : <div ref={slideContainerRef} style={{width:"100%",maxWidth:panelOpen?780:960,aspectRatio:"16/9",borderRadius:12,overflow:"hidden",boxShadow:"0 4px 6px rgba(0,0,0,.04),0 20px 50px rgba(0,0,0,.10),0 0 0 1px #E5E7EB",transition:"max-width .25s"}}>
                 {slides[slideIdx].render()}
               </div>
           }
@@ -1785,6 +1899,34 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
     setChatLoading(false);
   };
 
+  /* ── Export PDF ── */
+  const exportAnalysisPDF = () => {
+    if (!analysis) return;
+    const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const vColor = v => v==="VALIDEE"||v==="ATTEINT"||v==="GO" ? "#059669" : v==="INVALIDEE"||v==="NON ATTEINT"||v==="NO-GO" ? "#DC2626" : v==="NON MESURE"||v==="NON TESTABLE" ? "#6B7280" : "#D97706";
+    const vBg    = v => v==="VALIDEE"||v==="ATTEINT"||v==="GO" ? "#F0FDF4" : v==="INVALIDEE"||v==="NON ATTEINT"||v==="NO-GO" ? "#FEF2F2" : v==="NON MESURE"||v==="NON TESTABLE" ? "#F3F4F6" : "#FFFBEB";
+    const badge  = v => `<span style="font-size:10px;font-weight:700;color:${vColor(v)};background:${vBg(v)};border-radius:4px;padding:2px 9px;letter-spacing:0.04em">${escHtml(v)}</span>`;
+    const body = `
+<div style="border-bottom:3px solid #4F46E5;padding-bottom:22px;margin-bottom:36px">
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#6B7280;margin-bottom:8px">Analyse des résultats</div>
+  <h1>${escHtml(protocol?.title||"Analyse")}</h1>
+  <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
+    <span style="font-size:32px;font-weight:900;color:${vColor(analysis.decision)}">${escHtml(analysis.decision)}</span>
+    ${badge(analysis.decision)}
+  </div>
+</div>
+${analysis.contextSummary?`<div class="section no-break"><h2>Dispositif &amp; Contexte</h2><p>${escHtml(analysis.contextSummary)}</p></div>`:""}
+${analysis.methodologicalWarnings?.length?`<div class="section no-break" style="border-color:#FBBF24;background:#FFFBEB"><h2 style="color:#D97706">⚠ Points de vigilance méthodologiques</h2>${analysis.methodologicalWarnings.map(w=>`<p>• ${escHtml(w)}</p>`).join("")}</div>`:""}
+<div class="section no-break"><h2>Décision</h2><p>${escHtml(analysis.decisionRationale)}</p>${analysis.nextSteps?`<div class="card card-accent" style="margin-top:14px"><h3>Prochaines étapes</h3><p>${escHtml(analysis.nextSteps)}</p></div>`:""}</div>
+${analysis.quantitativeAnalysis?.metrics?.length?`<div class="section"><h2>Analyse quantitative</h2>${analysis.quantitativeAnalysis.overview?`<p style="margin-bottom:16px">${escHtml(analysis.quantitativeAnalysis.overview)}</p>`:""} ${analysis.quantitativeAnalysis.metrics.map(m=>`<div class="task-card no-break"><div class="task-header"><span>${escHtml(m.name)}</span>${m.delta?`<span style="font-size:13px;font-weight:700">${escHtml(m.delta)}</span>`:""}</div><div class="task-body"><div class="two-col">${m.groupA?`<div><h3>${escHtml(m.groupA.label)}</h3><p style="font-size:18px;font-weight:800">${escHtml(m.groupA.value)}${m.groupA.n?`<span class="meta"> (n=${m.groupA.n})</span>`:""}</p></div>`:""} ${m.groupB?`<div><h3>${escHtml(m.groupB.label)}</h3><p style="font-size:18px;font-weight:800">${escHtml(m.groupB.value)}${m.groupB.n?`<span class="meta"> (n=${m.groupB.n})</span>`:""}</p></div>`:""}</div>${m.significance?`<p class="meta" style="margin-top:8px">Significativité : ${escHtml(m.significance)}</p>`:""} ${m.interpretation?`<p>${escHtml(m.interpretation)}</p>`:""}</div></div>`).join("")}</div>`:""}
+${analysis.qualitativeAnalysis?.commonThemes?.length?`<div class="section"><h2>Analyse qualitative</h2><h3>Thèmes communs</h3>${analysis.qualitativeAnalysis.commonThemes.map(t=>`<div class="card no-break"><p style="font-weight:700;font-size:13px">${escHtml(t.theme)}</p>${t.frequency?`<p class="meta">${escHtml(t.frequency)}</p>`:""}<p style="margin-top:6px">${escHtml(t.description)}</p>${t.verbatims?.length?`<div style="margin-top:10px;padding-left:14px;border-left:2px solid #E5E7EB">${t.verbatims.map(v=>`<p style="font-style:italic;font-size:12px">"${escHtml(v)}"</p>`).join("")}</div>`:""}</div>`).join("")} ${analysis.qualitativeAnalysis.groupSpecificThemes?.length?`<h3 style="margin-top:18px">Spécificités par groupe</h3>${analysis.qualitativeAnalysis.groupSpecificThemes.map(t=>`<div class="card card-accent no-break"><p><span class="badge" style="margin-right:8px">${escHtml(t.group)}</span><strong>${escHtml(t.theme)}</strong></p>${t.frequency?`<p class="meta">${escHtml(t.frequency)}</p>`:""}<p style="margin-top:6px">${escHtml(t.description)}</p>${t.verbatims?.length?`<div style="margin-top:10px;padding-left:14px;border-left:2px solid #E5E7EB">${t.verbatims.map(v=>`<p style="font-style:italic;font-size:12px">"${escHtml(v)}"</p>`).join("")}</div>`:""}</div>`).join("")}`:""}  </div>`:""}
+${analysis.hypothesesAssessment?.length?`<div class="section"><h2>Validation des hypothèses</h2>${analysis.hypothesesAssessment.map((h,i)=>`<div class="task-card no-break" style="border-left:4px solid ${vColor(h.verdict)}"><div class="task-header" style="background:${vBg(h.verdict)};color:${vColor(h.verdict)};display:flex;justify-content:space-between;align-items:flex-start;gap:16px"><span><span style="background:${vColor(h.verdict)};color:#fff;border-radius:3px;padding:1px 7px;font-size:10px;margin-right:8px">H${i+1}</span>${escHtml(h.hypothesis)}</span>${badge(h.verdict)}</div><div class="task-body">${h.quantitativeEvidence?`<p><strong>Preuves quantitatives :</strong> ${escHtml(h.quantitativeEvidence)}</p>`:""} ${h.qualitativeEvidence?`<p style="font-style:italic"><strong>Preuves qualitatives :</strong> ${escHtml(h.qualitativeEvidence)}</p>`:""} ${h.nuance?`<div class="card card-warn"><h3>Ce que le verdict ne dit pas</h3><p>${escHtml(h.nuance)}</p></div>`:""} <p class="meta">Confiance : <strong style="color:${vColor(h.confidence==="Elevee"?"GO":h.confidence==="Faible"?"NO-GO":"ITERER")}">${escHtml(h.confidence)}</strong></p></div></div>`).join("")}</div>`:""}
+${analysis.keyFindings?.length?`<div class="section"><h2>Enseignements clés</h2>${analysis.keyFindings.map((f,i)=>`<div class="task-card no-break"><div class="task-header"><span style="background:rgba(255,255,255,.15);border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;margin-right:10px">${i+1}</span>${escHtml(f.finding)}</div><div class="task-body"><p>${escHtml(f.support)}</p><p class="meta" style="margin-top:6px">Confiance : ${escHtml(f.confidence)}</p></div></div>`).join("")}</div>`:""}
+${analysis.recommendations?.length?`<div class="section"><h2>Recommandations</h2>${analysis.recommendations.map(r=>`<div class="task-card no-break"><div class="task-header"><span>Priorité ${r.priority} — ${escHtml(r.action)}</span><span style="font-size:11px;font-weight:400;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:4px">${escHtml(r.horizon||r.effort||"")}</span></div><div class="task-body"><p>${escHtml(r.rationale)}</p>${r.expectedImpact?`<div class="card card-ok" style="margin-top:8px"><p><strong style="color:#059669">Impact attendu :</strong> ${escHtml(r.expectedImpact)}</p></div>`:""}</div></div>`).join("")} ${analysis.kpiAssessment?.length?`<h3 style="margin-top:24px">Évaluation des KPIs</h3><div class="two-col">${analysis.kpiAssessment.map(k=>`<div class="card no-break" style="border-left:3px solid ${vColor(k.status)}"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><strong>${escHtml(k.kpi)}</strong>${badge(k.status)}</div>${k.target?`<p class="meta">Cible : <strong style="color:#4F46E5">${escHtml(k.target)}</strong></p>`:""} ${k.observed?`<p class="meta">Observé : <strong style="color:${vColor(k.status)}">${escHtml(k.observed)}</strong></p>`:""} ${k.interpretation?`<p style="margin-top:8px;font-size:12px">${escHtml(k.interpretation)}</p>`:""}</div>`).join("")}</div>`:""}  </div>`:""}
+    `;
+    openPrintWindow((protocol?.title||"Analyse")+" — Résultats", body);
+  };
+
   /* ── Verdict badge ── */
   const VerdictBadge = ({v}) => {
     const map = {
@@ -2048,8 +2190,11 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
             <div style={{fontSize:15,fontWeight:800,color:T.ink}}>{protocol?.title||"Analyse"}</div>
             <div style={{fontSize:10,color:T.muted}}>Grille : {analysis.readingGrid} · Confiance : {analysis.confidenceLevel}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
             <VerdictBadge v={analysis.decision}/>
+            <button onClick={exportAnalysisPDF} style={{background:T.bg,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 14px",cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+              &#8659; PDF
+            </button>
           </div>
         </div>
 
@@ -2067,16 +2212,16 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
               {/* Context */}
               {analysis.contextSummary && (
                 <div style={{background:T.bg,borderRadius:10,border:`1px solid ${T.border}`,padding:20}}>
-                  <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.12em",color:T.muted,marginBottom:8}}>Dispositif</div>
-                  <div style={{fontSize:12,color:T.ink2,lineHeight:1.7}}>{analysis.contextSummary}</div>
+                  <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.10em",color:T.muted,marginBottom:8}}>Dispositif</div>
+                  <div style={{fontSize:13,color:T.ink2,lineHeight:1.75}}>{analysis.contextSummary}</div>
                 </div>
               )}
               {/* Warnings */}
               {analysis.methodologicalWarnings?.length > 0 && (
                 <div style={{background:`${T.warn}08`,borderRadius:10,border:`1px solid ${T.warn}30`,borderLeft:`3px solid ${T.warn}`,padding:16}}>
-                  <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.12em",color:T.warn,marginBottom:8}}>⚠ Points de vigilance méthodologiques</div>
+                  <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.10em",color:T.warn,marginBottom:8}}>⚠ Points de vigilance méthodologiques</div>
                   {analysis.methodologicalWarnings.map((w,i)=>(
-                    <div key={i} style={{fontSize:11,color:T.ink2,lineHeight:1.6,marginBottom:4}}>• {w}</div>
+                    <div key={i} style={{fontSize:13,color:T.ink2,lineHeight:1.7,marginBottom:4}}>• {w}</div>
                   ))}
                 </div>
               )}
@@ -2086,11 +2231,11 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
                   <div style={{fontSize:28,fontWeight:900,color:analysis.decision==="GO"?T.ok:analysis.decision==="NO-GO"?T.danger:T.warn,letterSpacing:"-0.02em"}}>{analysis.decision}</div>
                   <VerdictBadge v={analysis.decision}/>
                 </div>
-                <div style={{fontSize:12,color:T.ink2,lineHeight:1.75,marginBottom:14,whiteSpace:"pre-line"}}>{analysis.decisionRationale}</div>
+                <div style={{fontSize:13,color:T.ink2,lineHeight:1.8,marginBottom:14,whiteSpace:"pre-line"}}>{analysis.decisionRationale}</div>
                 {analysis.nextSteps && (
-                  <div style={{background:`${T.accent}08`,borderRadius:8,padding:"10px 14px",borderLeft:`3px solid ${T.accent}`}}>
-                    <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.accent,marginBottom:4}}>Prochaines étapes pour lever les incertitudes</div>
-                    <div style={{fontSize:11,color:T.ink2,lineHeight:1.6}}>{analysis.nextSteps}</div>
+                  <div style={{background:`${T.accent}08`,borderRadius:8,padding:"12px 16px",borderLeft:`3px solid ${T.accent}`}}>
+                    <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.accent,marginBottom:6}}>Prochaines étapes pour lever les incertitudes</div>
+                    <div style={{fontSize:13,color:T.ink2,lineHeight:1.7}}>{analysis.nextSteps}</div>
                   </div>
                 )}
               </div>
@@ -2100,12 +2245,12 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
           {/* QUANTITATIF */}
           {activeSection==="quanti" && (
             <div style={{display:"flex",flexDirection:"column",gap:20}}>
-              <div style={{fontSize:13,fontWeight:800,color:T.ink}}>{analysis.quantitativeAnalysis?.overview||"Analyse quantitative"}</div>
+              <div style={{fontSize:14,fontWeight:800,color:T.ink}}>{analysis.quantitativeAnalysis?.overview||"Analyse quantitative"}</div>
 
               {/* Metrics table */}
               {analysis.quantitativeAnalysis?.metrics?.length > 0 && (
                 <div style={{background:T.bg,borderRadius:10,border:`1px solid ${T.border}`,overflow:"hidden"}}>
-                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${T.border}`,fontSize:10,fontWeight:700,color:T.ink,textTransform:"uppercase",letterSpacing:"0.1em"}}>Métriques comparatives</div>
+                  <div style={{padding:"12px 18px",borderBottom:`1px solid ${T.border}`,fontSize:11,fontWeight:700,color:T.ink,textTransform:"uppercase",letterSpacing:"0.1em"}}>Métriques comparatives</div>
                   <div style={{overflowX:"auto"}}>
                     <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
                       <thead>
@@ -2123,13 +2268,13 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
                           return (
                             <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.bg2}}>
                               <td style={{padding:"10px 16px"}}>
-                                <div style={{fontSize:11,fontWeight:600,color:T.ink}}>{m.name}</div>
-                                {m.interpretation && <div style={{fontSize:10,color:T.muted,marginTop:2,lineHeight:1.4}}>{m.interpretation}</div>}
+                                <div style={{fontSize:13,fontWeight:600,color:T.ink}}>{m.name}</div>
+                                {m.interpretation && <div style={{fontSize:11,color:T.muted,marginTop:3,lineHeight:1.5}}>{m.interpretation}</div>}
                               </td>
-                              {m.groupA && <td style={{padding:"10px 12px",textAlign:"center",fontSize:11,fontWeight:700,color:T.ink}}>{m.groupA.value}{m.groupA.n && <span style={{fontSize:9,color:T.muted,fontWeight:400}}> (n={m.groupA.n})</span>}</td>}
-                              {m.groupB && <td style={{padding:"10px 12px",textAlign:"center",fontSize:11,fontWeight:700,color:T.ink}}>{m.groupB.value}{m.groupB.n && <span style={{fontSize:9,color:T.muted,fontWeight:400}}> (n={m.groupB.n})</span>}</td>}
-                              <td style={{padding:"10px 12px",textAlign:"center",fontSize:11,fontWeight:800,color:m.delta?.startsWith("+")?T.ok:m.delta?.startsWith("-")?T.danger:T.muted}}>{m.delta||"—"}</td>
-                              <td style={{padding:"10px 12px",fontSize:10,color:sigColor,fontWeight:600}}>{m.significance||"—"}</td>
+                              {m.groupA && <td style={{padding:"10px 12px",textAlign:"center",fontSize:13,fontWeight:700,color:T.ink}}>{m.groupA.value}{m.groupA.n && <span style={{fontSize:10,color:T.muted,fontWeight:400}}> (n={m.groupA.n})</span>}</td>}
+                              {m.groupB && <td style={{padding:"10px 12px",textAlign:"center",fontSize:13,fontWeight:700,color:T.ink}}>{m.groupB.value}{m.groupB.n && <span style={{fontSize:10,color:T.muted,fontWeight:400}}> (n={m.groupB.n})</span>}</td>}
+                              <td style={{padding:"10px 12px",textAlign:"center",fontSize:13,fontWeight:800,color:m.delta?.startsWith("+")?T.ok:m.delta?.startsWith("-")?T.danger:T.muted}}>{m.delta||"—"}</td>
+                              <td style={{padding:"10px 12px",fontSize:11,color:sigColor,fontWeight:600}}>{m.significance||"—"}</td>
                             </tr>
                           );
                         })}
@@ -2175,15 +2320,15 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
                     {analysis.qualitativeAnalysis.commonThemes.map((t,i)=>(
                       <div key={i} style={{background:T.bg,borderRadius:10,border:`1px solid ${T.border}`,padding:"14px 18px"}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:T.accent,flexShrink:0}}/>
-                          <div style={{fontSize:12,fontWeight:700,color:T.ink}}>{t.theme}</div>
-                          {t.frequency && <span style={{fontSize:9,color:T.muted,background:T.bg2,borderRadius:3,padding:"1px 7px",border:`1px solid ${T.border}`,marginLeft:"auto"}}>{t.frequency}</span>}
+                          <div style={{width:7,height:7,borderRadius:"50%",background:T.accent,flexShrink:0}}/>
+                          <div style={{fontSize:13,fontWeight:700,color:T.ink}}>{t.theme}</div>
+                          {t.frequency && <span style={{fontSize:10,color:T.muted,background:T.bg2,borderRadius:3,padding:"2px 8px",border:`1px solid ${T.border}`,marginLeft:"auto"}}>{t.frequency}</span>}
                         </div>
-                        <div style={{fontSize:11,color:T.ink2,lineHeight:1.65,marginBottom:t.verbatims?.length?10:0}}>{t.description}</div>
+                        <div style={{fontSize:13,color:T.ink2,lineHeight:1.7,marginBottom:t.verbatims?.length?10:0}}>{t.description}</div>
                         {t.verbatims?.length > 0 && (
-                          <div style={{display:"flex",flexDirection:"column",gap:5,paddingLeft:14,borderLeft:`2px solid ${T.border}`}}>
+                          <div style={{display:"flex",flexDirection:"column",gap:6,paddingLeft:14,borderLeft:`2px solid ${T.border}`}}>
                             {t.verbatims.map((v,vi)=>(
-                              <div key={vi} style={{fontSize:10,color:T.ink2,fontStyle:"italic",lineHeight:1.5}}>"{v}"</div>
+                              <div key={vi} style={{fontSize:12,color:T.ink2,fontStyle:"italic",lineHeight:1.6}}>"{v}"</div>
                             ))}
                           </div>
                         )}
@@ -2231,32 +2376,32 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
                     <div style={{padding:"12px 18px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12}}>
                       <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                         <span style={{fontSize:9,fontWeight:900,color:T.accent,background:`${T.accent}14`,borderRadius:3,padding:"2px 7px",flexShrink:0,marginTop:1}}>H{i+1}</span>
-                        <div style={{fontSize:12,fontWeight:700,color:T.ink,lineHeight:1.5}}>{h.hypothesis}</div>
+                        <div style={{fontSize:13,fontWeight:700,color:T.ink,lineHeight:1.5}}>{h.hypothesis}</div>
                       </div>
                       <VerdictBadge v={h.verdict}/>
                     </div>
-                    <div style={{padding:"12px 18px",display:"flex",flexDirection:"column",gap:10}}>
+                    <div style={{padding:"14px 18px",display:"flex",flexDirection:"column",gap:12}}>
                       {h.quantitativeEvidence && (
                         <div>
-                          <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.muted,marginBottom:4}}>Preuves quantitatives</div>
-                          <div style={{fontSize:11,color:T.ink2,lineHeight:1.6}}>{h.quantitativeEvidence}</div>
+                          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.muted,marginBottom:5}}>Preuves quantitatives</div>
+                          <div style={{fontSize:13,color:T.ink2,lineHeight:1.7}}>{h.quantitativeEvidence}</div>
                         </div>
                       )}
                       {h.qualitativeEvidence && (
                         <div>
-                          <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.muted,marginBottom:4}}>Preuves qualitatives</div>
-                          <div style={{fontSize:11,color:T.ink2,lineHeight:1.6,fontStyle:"italic"}}>{h.qualitativeEvidence}</div>
+                          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.muted,marginBottom:5}}>Preuves qualitatives</div>
+                          <div style={{fontSize:13,color:T.ink2,lineHeight:1.7,fontStyle:"italic"}}>{h.qualitativeEvidence}</div>
                         </div>
                       )}
                       {h.nuance && (
-                        <div style={{background:`${T.warn}08`,borderRadius:6,padding:"8px 12px",border:`1px solid ${T.warn}25`}}>
-                          <div style={{fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.warn,marginBottom:3}}>Ce que le verdict ne dit pas</div>
-                          <div style={{fontSize:10,color:T.ink2,lineHeight:1.5}}>{h.nuance}</div>
+                        <div style={{background:`${T.warn}08`,borderRadius:8,padding:"10px 14px",border:`1px solid ${T.warn}25`}}>
+                          <div style={{fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:T.warn,marginBottom:4}}>Ce que le verdict ne dit pas</div>
+                          <div style={{fontSize:12,color:T.ink2,lineHeight:1.6}}>{h.nuance}</div>
                         </div>
                       )}
                       <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                        <span style={{fontSize:9,color:T.muted}}>Confiance :</span>
-                        <span style={{fontSize:9,fontWeight:700,color:h.confidence==="Elevee"?T.ok:h.confidence==="Faible"?T.danger:T.warn}}>{h.confidence}</span>
+                        <span style={{fontSize:11,color:T.muted}}>Confiance :</span>
+                        <span style={{fontSize:11,fontWeight:700,color:h.confidence==="Elevee"?T.ok:h.confidence==="Faible"?T.danger:T.warn}}>{h.confidence}</span>
                       </div>
                     </div>
                   </div>
@@ -2277,11 +2422,11 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
                       <span style={{color:item.actionable?"#fff":T.muted,fontSize:12,fontWeight:900}}>#{i+1}</span>
                     </div>
                     <div style={{flex:1,padding:"14px 18px"}}>
-                      <div style={{fontSize:12,fontWeight:700,color:T.ink,lineHeight:1.4,marginBottom:8}}>{item.finding}</div>
-                      <div style={{fontSize:11,color:T.ink2,lineHeight:1.6,marginBottom:8}}>{item.support}</div>
+                      <div style={{fontSize:13,fontWeight:700,color:T.ink,lineHeight:1.5,marginBottom:8}}>{item.finding}</div>
+                      <div style={{fontSize:13,color:T.ink2,lineHeight:1.7,marginBottom:8}}>{item.support}</div>
                       <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                        <span style={{fontSize:9,color:T.muted}}>Confiance :</span>
-                        <span style={{fontSize:9,fontWeight:700,color:item.confidence==="Elevee"?T.ok:item.confidence==="Faible"?T.danger:T.warn}}>{item.confidence}</span>
+                        <span style={{fontSize:11,color:T.muted}}>Confiance :</span>
+                        <span style={{fontSize:11,fontWeight:700,color:item.confidence==="Elevee"?T.ok:item.confidence==="Faible"?T.danger:T.warn}}>{item.confidence}</span>
                       </div>
                     </div>
                   </div>
@@ -2301,12 +2446,12 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
                   </div>
                   <div style={{flex:1,padding:"14px 18px"}}>
                     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:8}}>
-                      <div style={{fontSize:12,fontWeight:700,color:T.ink,lineHeight:1.4}}>{r.action}</div>
-                      <span style={{fontSize:9,fontWeight:700,color:T.muted,background:T.bg2,borderRadius:3,padding:"2px 8px",border:`1px solid ${T.border}`,flexShrink:0,whiteSpace:"nowrap"}}>{r.horizon||r.effort}</span>
+                      <div style={{fontSize:13,fontWeight:700,color:T.ink,lineHeight:1.4}}>{r.action}</div>
+                      <span style={{fontSize:10,fontWeight:700,color:T.muted,background:T.bg2,borderRadius:3,padding:"2px 8px",border:`1px solid ${T.border}`,flexShrink:0,whiteSpace:"nowrap"}}>{r.horizon||r.effort}</span>
                     </div>
-                    <div style={{fontSize:11,color:T.ink2,lineHeight:1.6,marginBottom:r.expectedImpact?8:0}}>{r.rationale}</div>
+                    <div style={{fontSize:13,color:T.ink2,lineHeight:1.7,marginBottom:r.expectedImpact?8:0}}>{r.rationale}</div>
                     {r.expectedImpact && (
-                      <div style={{background:`${T.ok}08`,borderRadius:5,padding:"5px 10px",border:`1px solid ${T.ok}20`,fontSize:10,color:T.ink2}}>
+                      <div style={{background:`${T.ok}08`,borderRadius:6,padding:"8px 12px",border:`1px solid ${T.ok}20`,fontSize:12,color:T.ink2}}>
                         <span style={{fontWeight:700,color:T.ok}}>Impact attendu :</span> {r.expectedImpact}
                       </div>
                     )}
@@ -2682,6 +2827,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Le JSON doit 
     supervising={supervising} aiContent={aiContent} setAiContent={setAiContent}
     openSlides={openSlides}
     onBack={()=>setScreen("builder")}
+    briefData={briefData}
   />;
 
   /* BUILDER */
