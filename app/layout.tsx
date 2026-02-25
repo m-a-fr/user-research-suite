@@ -6,7 +6,8 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "User Research Suite",
-  description: "Protocole Builder · Brief Builder · Analysis Engine",
+  description: "Protocole Builder · Brief Builder · Analysis Engine — par Mehdi Aoussat",
+  authors: [{ name: "Mehdi Aoussat", url: "https://www.mehdi-aoussat.com" }],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

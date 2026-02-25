@@ -2617,6 +2617,20 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Le JSON doit 
           <div className="text-5xl mb-4">🔬</div>
           <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">User Research Suite</h1>
           <p className="text-gray-400 text-sm">Protocole Builder · Brief Builder · Analysis Engine</p>
+          <p className="text-xs text-gray-300 mt-4">
+            Conçu par{" "}
+            <a href="https://www.mehdi-aoussat.com" target="_blank" rel="noopener noreferrer"
+              className="text-indigo-400 hover:text-indigo-600 font-medium transition-colors">
+              Mehdi Aoussat
+            </a>
+            {" "}· Propulsé par{" "}
+            <span className="text-indigo-400 font-medium">Claude</span>
+            {" · "}
+            <a href="https://www.anthropic.com" target="_blank" rel="noopener noreferrer"
+              className="text-gray-300 hover:text-gray-500 transition-colors">
+              Anthropic
+            </a>
+          </p>
         </div>
         <div className="grid gap-4">
           {/* Protocole Builder */}
