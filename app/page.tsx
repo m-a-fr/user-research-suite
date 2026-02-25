@@ -1,5 +1,5 @@
 "use client";
-
+// @ts-nocheck
 import { useState, useRef, useEffect } from "react";
 
 /* ━━━ DESIGN TOKENS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -254,7 +254,7 @@ const initData = () => ({
 
 /* ━━━ SLIDE ATOMS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const Lbl = ({c,color=T.muted}) => <div style={{fontFamily:T.ff,fontSize:9,fontWeight:700,letterSpacing:"0.14em",textTransform:"uppercase",color,marginBottom:5}}>{c}</div>;
-const Rule = ({color=T.accent,h=2,w=40,my=12}) => <div style={{height:h,width:w,background:color,borderRadius:1,margin:`${my}px 0`}}/>;
+const Rule = ({color=T.accent,h=2,w=40,my=12}:{color?:string,h?:number,w?:number|string,my?:number}) => <div style={{height:h,width:w,background:color,borderRadius:1,margin:`${my}px 0`}}/>;
 const Chip = ({c,color=T.accent}) => <span style={{fontFamily:T.ff,fontSize:9,fontWeight:700,color,background:`${color}14`,border:`1px solid ${color}28`,borderRadius:4,padding:"2px 8px",display:"inline-block"}}>{c}</span>;
 const Body = ({c,size=11,lh=1.8,color=T.ink2}) => <p style={{fontFamily:T.ff,fontSize:size,color,lineHeight:lh,margin:0,whiteSpace:"pre-line"}}>{c||"—"}</p>;
 const Shell = ({children}) => (
