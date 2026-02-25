@@ -612,7 +612,7 @@ strong{font-weight:700;color:#111827}
 .three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
 .verdict-go{color:#059669}.verdict-nogo{color:#DC2626}.verdict-iter{color:#D97706}
 .cover-bar{height:4px;background:#4F46E5;border-radius:2px;width:48px;margin:12px 0}
-@media print{@page{margin:15mm}body{padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-break{page-break-inside:avoid}.page-break{page-break-after:always}}
+@media print{@page{margin:0;size:A4}body{padding:20mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}.no-break{page-break-inside:avoid}.page-break{page-break-after:always}}
 `;
 
 const openPrintWindow = (title, htmlBody) => {
@@ -632,6 +632,21 @@ const loadScript = (src) => new Promise((resolve, reject) => {
   s.src = src; s.async = true; s.onload = resolve; s.onerror = reject;
   document.head.appendChild(s);
 });
+
+const extractPDFText = async (file) => {
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+  const lib = window["pdfjs-dist/build/pdf"];
+  lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const buf = await file.arrayBuffer();
+  const pdf = await lib.getDocument({data: buf}).promise;
+  const pages = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const pg = await pdf.getPage(i);
+    const ct = await pg.getTextContent();
+    pages.push(ct.items.map(it => it.str).join(" "));
+  }
+  return pages.join("\n\n");
+};
 
 /* ━━━ PROTOCOL VIEWER ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const ProtocolViewer = ({protocol, onEdit, onUseBrief, onAnalyse, onBack}) => {
@@ -1239,8 +1254,10 @@ const ProtocolChat = ({onProtocolReady, onBack}) => {
   const [loading, setLoading] = useState(false);
   const [templateMode, setTemplateMode] = useState(false);
   const [templateText, setTemplateText] = useState(TEMPLATE_TEXT);
+  const [pdfImporting, setPdfImporting] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
+  const pdfFileRef = useRef(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages]);
 
@@ -1309,6 +1326,20 @@ const ProtocolChat = ({onProtocolReady, onBack}) => {
     setLoading(false);
   };
 
+  const importBriefPDF = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPdfImporting(true);
+    try {
+      const text = await extractPDFText(file);
+      await send(`Voici le contenu d'un document de recherche (brief ou protocole existant). Génère un protocole de test complet et professionnel basé sur ces informations :\n\n${text}`);
+    } catch(err) {
+      setMessages(prev => [...prev, {role:"assistant", content:`Erreur lors de l'import PDF : ${err.message}`}]);
+    }
+    setPdfImporting(false);
+    e.target.value = "";
+  };
+
   const useTemplate = () => {
     setTemplateMode(true);
     setInput("");
@@ -1352,13 +1383,17 @@ const ProtocolChat = ({onProtocolReady, onBack}) => {
                 </div>
                 {/* CTA buttons on welcome message */}
                 {m.isWelcome && (
-                  <div style={{display:"flex",gap:8,paddingLeft:4}}>
+                  <div style={{display:"flex",gap:8,paddingLeft:4,flexWrap:"wrap"}}>
                     <button onClick={useTemplate} style={{background:T.accent,color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                       📋 Utiliser le template
                     </button>
                     <button onClick={()=>{setTemplateMode(false); setTimeout(()=>document.querySelector("input[placeholder='Votre réponse…']")?.focus(),50);}} style={{background:T.bg,color:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:"pointer"}}>
                       💬 Décrire librement
                     </button>
+                    <button onClick={()=>pdfFileRef.current?.click()} disabled={pdfImporting} style={{background:T.bg,color:pdfImporting?T.muted:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"9px 18px",fontSize:12,fontWeight:600,cursor:pdfImporting?"default":"pointer",opacity:pdfImporting?.6:1}}>
+                      {pdfImporting?"Import...":"📄 Importer un PDF"}
+                    </button>
+                    <input ref={pdfFileRef} type="file" accept="application/pdf" onChange={importBriefPDF} style={{display:"none"}}/>
                   </div>
                 )}
               </div>
@@ -1433,7 +1468,7 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
       const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+      const pdf = new jsPDF({orientation:"landscape",unit:"mm",format:[297,167.0625]});
       const pdfW = pdf.internal.pageSize.getWidth();
       const pdfH = pdf.internal.pageSize.getHeight();
       const origIdx = slideIdx;
@@ -1744,6 +1779,8 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
   const [protocol, setProtocol]   = useState(initialProtocol || null);
   const [protocolJson, setProtocolJson] = useState("");
   const [protocolError, setProtocolError] = useState("");
+  const [pdfImporting, setPdfImporting] = useState(false);
+  const pdfFileRef = useRef(null);
   // CSV multi-file state
   const [csvFiles, setCsvFiles]   = useState([]); // [{name, label, rows, headers, preview}]
   const [extraNotes, setExtraNotes] = useState("");
@@ -1842,6 +1879,40 @@ const AnalysisEngine = ({initialProtocol, onBack}) => {
       parts.push(extraNotes);
     }
     return parts.join("\n");
+  };
+
+  /* ── Import protocol from PDF ── */
+  const importProtocolPDF = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPdfImporting(true);
+    try {
+      const text = await extractPDFText(file);
+      const reply = await callClaude(
+        [{role:"user", content:`Voici le contenu extrait d'un protocole de test utilisateur. Extrais et génère le JSON complet du protocole au format standard (avec "ready":true et "protocol":{...}) :\n\n${text}`}],
+        PROTOCOL_SYSTEM, 16000
+      );
+      const start = reply.indexOf("{"), end = reply.lastIndexOf("}");
+      if (start !== -1 && end !== -1) {
+        const slice = reply.slice(start, end+1);
+        try {
+          const p = JSON.parse(slice);
+          const proto = p.protocol || p;
+          if (proto && (proto.tasks || proto.hypotheses || proto.objective)) {
+            setProtocol(proto);
+            setProtocolError("");
+            setStep("results");
+          } else {
+            setProtocolJson(slice);
+            setProtocolError("Vérifiez le JSON extrait avant de charger.");
+          }
+        } catch { setProtocolJson(slice); setProtocolError("Vérifiez le JSON extrait avant de charger."); }
+      } else {
+        setProtocolError("Impossible d'extraire le protocole depuis ce PDF.");
+      }
+    } catch(err) { setProtocolError(`Erreur d'import : ${err.message}`); }
+    setPdfImporting(false);
+    e.target.value = "";
   };
 
   /* ── Parse protocol from JSON paste ── */
@@ -1973,7 +2044,16 @@ ${analysis.recommendations?.length?`<div class="section"><h2>Recommandations</h2
             <div style={{fontSize:12,color:T.muted,lineHeight:1.6}}>Collez le JSON d un protocole existant, ou revenez sur la page Protocole Builder pour lancer l analyse depuis la vue du protocole.</div>
           </div>
           <div style={{background:T.bg,borderRadius:12,border:`1px solid ${T.border}`,padding:24}}>
-            <div style={{fontSize:11,fontWeight:700,color:T.ink,marginBottom:8}}>JSON du protocole</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.ink}}>JSON du protocole</div>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <input ref={pdfFileRef} type="file" accept="application/pdf" onChange={importProtocolPDF} style={{display:"none"}}/>
+                <button onClick={()=>pdfFileRef.current?.click()} disabled={pdfImporting}
+                  style={{background:T.bg2,color:pdfImporting?T.muted:T.ink2,border:`1px solid ${T.border}`,borderRadius:7,padding:"5px 12px",fontSize:11,fontWeight:600,cursor:pdfImporting?"default":"pointer",opacity:pdfImporting?.6:1}}>
+                  {pdfImporting?"Import...":"📄 Importer PDF"}
+                </button>
+              </div>
+            </div>
             <textarea value={protocolJson} onChange={e=>setProtocolJson(e.target.value)}
               placeholder={'{\n  "title": "...",\n  "tasks": [...],\n  "hypotheses": [...]\n}'}
               rows={10}
@@ -2545,6 +2625,18 @@ ${analysis.recommendations?.length?`<div class="section"><h2>Recommandations</h2
 };
 
 
+/* ─── Brief Builder form helpers (module-level to prevent focus-loss on re-render) ─── */
+const BIC = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
+const Fld = ({label,hint,children}) => (
+  <div className="mb-4">
+    <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+    {hint&&<p className="text-xs text-gray-400 mb-2">{hint}</p>}
+    {children}
+  </div>
+);
+const BIn = ({value,onChange,ph,type="text"}) => <input type={type} value={value??""} onChange={onChange} placeholder={ph} className={BIC}/>;
+const BTa = ({value,onChange,ph,rows=3}) => <textarea value={value??""} onChange={onChange} placeholder={ph} rows={rows} className={BIC+" resize-none"}/>;
+
 export default function App() {
   useEffect(() => {
     const style = document.createElement("style");
@@ -2567,6 +2659,8 @@ export default function App() {
   const [customQuali, setCustomQuali] = useState("");
   const [customKpiBiz, setCustomKpiBiz] = useState("");
   const [analysisProtocol, setAnalysisProtocol] = useState(null);
+  const [briefPdfImporting, setBriefPdfImporting] = useState(false);
+  const briefPdfRef = useRef(null);
 
   const setD = (k,v) => setBriefData(d=>({...d,[k]:v}));
   const toggleTT = t => setD("testTypes",briefData.testTypes.includes(t)?briefData.testTypes.filter(x=>x!==t):[...briefData.testTypes,t]);
@@ -2660,6 +2754,35 @@ export default function App() {
     setScreen("builder");
   };
 
+  const importProtocolPDFForBrief = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBriefPdfImporting(true);
+    try {
+      const text = await extractPDFText(file);
+      const reply = await callClaude(
+        [{role:"user", content:`Voici le contenu extrait d'un protocole de test utilisateur. Analyse-le et génère le JSON complet du protocole au format standard (avec "ready":true et "protocol":{...}) :\n\n${text}`}],
+        PROTOCOL_SYSTEM, 16000
+      );
+      const start = reply.indexOf("{"), end = reply.lastIndexOf("}");
+      if (start !== -1 && end !== -1) {
+        try {
+          const p = JSON.parse(reply.slice(start, end+1));
+          const proto = p.protocol || (p.ready ? null : p);
+          if (proto && (proto.tasks || proto.hypotheses || proto.objective)) {
+            useBriefFromProtocol(proto);
+          } else {
+            alert("Le protocole n'a pas pu être extrait depuis ce PDF.");
+          }
+        } catch { alert("Erreur de parsing du protocole extrait."); }
+      } else {
+        alert("Le protocole n'a pas pu être extrait depuis ce PDF.");
+      }
+    } catch(err) { alert(`Erreur d'import : ${err.message}`); }
+    setBriefPdfImporting(false);
+    e.target.value = "";
+  };
+
   /* Slide supervision */
   const openSlides = async () => {
     setSupervising(true); setSlideIdx(0); setAiContent(null); setScreen("slides");
@@ -2709,44 +2832,32 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Le JSON doit 
 
   const slides = buildBriefSlides(briefData, aiContent);
 
-  /* ── Form helpers ── */
-  const ic = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
-  const Fld = ({label,hint,children}) => (
-    <div className="mb-4">
-      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-      {hint&&<p className="text-xs text-gray-400 mb-2">{hint}</p>}
-      {children}
-    </div>
-  );
-  const In = ({k,ph,type="text"}) => <input type={type} value={briefData[k]} onChange={e=>setD(k,e.target.value)} placeholder={ph} className={ic}/>;
-  const Ta = ({k,ph,rows=3}) => <textarea value={briefData[k]} onChange={e=>setD(k,e.target.value)} placeholder={ph} rows={rows} className={ic+" resize-none"}/>;
-
   const renderBriefStep = () => {
     switch(briefStep){
-      case 1: return(<><Fld label="Nom du projet"><In k="projectName" ph="Ex : Refonte tunnel de commande"/></Fld><Fld label="Équipe produit"><In k="team" ph="Ex : Équipe Checkout"/></Fld><Fld label="Date du brief"><In k="date" type="date"/></Fld><Fld label="Commanditaire"><In k="sponsor" ph="Ex : Marie Dupont, PM"/></Fld><Fld label="Résumé exécutif" hint="Ce que tout stakeholder doit comprendre en 10 secondes"><Ta k="execSummary" ph="Ce test vise à identifier les freins au checkout..."/></Fld><Fld label="Question clé"><In k="keyQuestion" ph="Peut-on lancer la refonte sans risquer le taux de conversion ?"/></Fld><Fld label="Décision attendue"><Ta k="decisionExpected" ph="Go / No-go sur la mise en production..." rows={2}/></Fld></>);
-      case 2: return(<><Fld label="Problématique business"><Ta k="businessIssue" ph="Le taux d'abandon panier est de 68%..."/></Fld><Fld label="Impact attendu"><Ta k="businessImpact" ph="Réduire l'abandon de 15%..."/></Fld><Fld label="Lien stratégie produit"><Ta k="businessStrategy" ph="OKR Q2 — NPS +10 pts..."/></Fld></>);
+      case 1: return(<><Fld label="Nom du projet"><BIn value={briefData.projectName} onChange={e=>setD("projectName",e.target.value)} ph="Ex : Refonte tunnel de commande"/></Fld><Fld label="Équipe produit"><BIn value={briefData.team} onChange={e=>setD("team",e.target.value)} ph="Ex : Équipe Checkout"/></Fld><Fld label="Date du brief"><BIn value={briefData.date} onChange={e=>setD("date",e.target.value)} type="date"/></Fld><Fld label="Commanditaire"><BIn value={briefData.sponsor} onChange={e=>setD("sponsor",e.target.value)} ph="Ex : Marie Dupont, PM"/></Fld><Fld label="Résumé exécutif" hint="Ce que tout stakeholder doit comprendre en 10 secondes"><BTa value={briefData.execSummary} onChange={e=>setD("execSummary",e.target.value)} ph="Ce test vise à identifier les freins au checkout..."/></Fld><Fld label="Question clé"><BIn value={briefData.keyQuestion} onChange={e=>setD("keyQuestion",e.target.value)} ph="Peut-on lancer la refonte sans risquer le taux de conversion ?"/></Fld><Fld label="Décision attendue"><BTa value={briefData.decisionExpected} onChange={e=>setD("decisionExpected",e.target.value)} ph="Go / No-go sur la mise en production..." rows={2}/></Fld></>);
+      case 2: return(<><Fld label="Problématique business"><BTa value={briefData.businessIssue} onChange={e=>setD("businessIssue",e.target.value)} ph="Le taux d'abandon panier est de 68%..."/></Fld><Fld label="Impact attendu"><BTa value={briefData.businessImpact} onChange={e=>setD("businessImpact",e.target.value)} ph="Réduire l'abandon de 15%..."/></Fld><Fld label="Lien stratégie produit"><BTa value={briefData.businessStrategy} onChange={e=>setD("businessStrategy",e.target.value)} ph="OKR Q2 — NPS +10 pts..."/></Fld></>);
       case 3: return(<Fld label="Type(s) de test"><div className="flex flex-wrap gap-2 mt-1">{TEST_TYPES.map(t=>(<button key={t} onClick={()=>toggleTT(t)} className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${briefData.testTypes.includes(t)?"bg-indigo-600 text-white border-indigo-600":"bg-white text-gray-600 border-gray-200 hover:border-indigo-400"}`}>{t}</button>))}</div></Fld>);
-      case 4: return(<><Fld label="Question primaire"><In k="primaryQuestion" ph="Les utilisateurs finalisent-ils leur commande sans friction ?"/></Fld><Fld label="Questions secondaires"><Ta k="secondaryQuestions" ph="1. Comprennent-ils les options de livraison ?&#10;2. ..."/></Fld><Fld label="Hypothèses"><Ta k="hypotheses" ph="H1 : La complexité du formulaire est la principale cause d'abandon..."/></Fld></>);
+      case 4: return(<><Fld label="Question primaire"><BIn value={briefData.primaryQuestion} onChange={e=>setD("primaryQuestion",e.target.value)} ph="Les utilisateurs finalisent-ils leur commande sans friction ?"/></Fld><Fld label="Questions secondaires"><BTa value={briefData.secondaryQuestions} onChange={e=>setD("secondaryQuestions",e.target.value)} ph="1. Comprennent-ils les options de livraison ?&#10;2. ..."/></Fld><Fld label="Hypothèses"><BTa value={briefData.hypotheses} onChange={e=>setD("hypotheses",e.target.value)} ph="H1 : La complexité du formulaire est la principale cause d'abandon..."/></Fld></>);
       case 5: return(<>
         <Fld label="Données quantitatives" hint="Métriques mesurables avec seuil optionnel">
           {briefData.measuresQuanti.length>0&&<div className="mb-3 rounded-lg overflow-hidden border border-gray-200">{briefData.measuresQuanti.map((m,i)=><div key={i} className="flex items-center justify-between px-3 py-2 border-b border-gray-100 text-sm"><span className="font-medium text-gray-800">{m.label}</span>{m.threshold&&<span className="text-indigo-600 text-xs font-semibold bg-indigo-50 px-2 py-0.5 rounded">{m.threshold}</span>}<button onClick={()=>setD("measuresQuanti",briefData.measuresQuanti.filter((_,j)=>j!==i))} className="text-gray-300 hover:text-red-400 text-lg ml-2">×</button></div>)}</div>}
-          <div className="bg-gray-50 rounded-lg p-3 flex flex-col gap-2"><input value={customQuanti.label} onChange={e=>setCustomQuanti(p=>({...p,label:e.target.value}))} placeholder="Ex : Taux de complétion" className={ic}/><div className="flex gap-2"><input value={customQuanti.threshold} onChange={e=>setCustomQuanti(p=>({...p,threshold:e.target.value}))} placeholder="Seuil — ex : ≥ 70%" className={ic}/><button onClick={addQuanti} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 whitespace-nowrap">+ Ajouter</button></div></div>
+          <div className="bg-gray-50 rounded-lg p-3 flex flex-col gap-2"><input value={customQuanti.label} onChange={e=>setCustomQuanti(p=>({...p,label:e.target.value}))} placeholder="Ex : Taux de complétion" className={BIC}/><div className="flex gap-2"><input value={customQuanti.threshold} onChange={e=>setCustomQuanti(p=>({...p,threshold:e.target.value}))} placeholder="Seuil — ex : ≥ 70%" className={BIC}/><button onClick={addQuanti} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 whitespace-nowrap">+ Ajouter</button></div></div>
         </Fld>
         <Fld label="Données qualitatives">
           {briefData.measuresQuali.length>0&&<div className="mb-3 rounded-lg overflow-hidden border border-gray-200">{briefData.measuresQuali.map((m,i)=><div key={i} className="flex items-center justify-between px-3 py-2 border-b border-gray-100 text-sm"><span className="text-gray-700">{m.label}</span><button onClick={()=>setD("measuresQuali",briefData.measuresQuali.filter((_,j)=>j!==i))} className="text-gray-300 hover:text-red-400 text-lg ml-2">×</button></div>)}</div>}
-          <div className="bg-gray-50 rounded-lg p-3 flex gap-2"><input value={customQuali} onChange={e=>setCustomQuali(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addQuali()} placeholder="Ex : Perception de complexité" className={ic}/><button onClick={addQuali} className="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 whitespace-nowrap">+ Ajouter</button></div>
+          <div className="bg-gray-50 rounded-lg p-3 flex gap-2"><input value={customQuali} onChange={e=>setCustomQuali(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addQuali()} placeholder="Ex : Perception de complexité" className={BIC}/><button onClick={addQuali} className="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 whitespace-nowrap">+ Ajouter</button></div>
         </Fld>
         <Fld label="KPI business visés">
           {briefData.kpiBusiness.length>0&&<div className="mb-3 rounded-lg overflow-hidden border border-gray-200">{briefData.kpiBusiness.map((k,i)=><div key={i} className="flex items-center justify-between px-3 py-2 border-b border-gray-100 text-sm"><span className="text-gray-700">{k.label}</span><button onClick={()=>setD("kpiBusiness",briefData.kpiBusiness.filter((_,j)=>j!==i))} className="text-gray-300 hover:text-red-400 text-lg ml-2">×</button></div>)}</div>}
-          <div className="bg-green-50 rounded-lg p-3 flex gap-2"><input value={customKpiBiz} onChange={e=>setCustomKpiBiz(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addKpiBiz()} placeholder="Ex : Taux de conversion checkout" className={ic}/><button onClick={addKpiBiz} className="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800 whitespace-nowrap">+ Ajouter</button></div>
+          <div className="bg-green-50 rounded-lg p-3 flex gap-2"><input value={customKpiBiz} onChange={e=>setCustomKpiBiz(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addKpiBiz()} placeholder="Ex : Taux de conversion checkout" className={BIC}/><button onClick={addKpiBiz} className="bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-800 whitespace-nowrap">+ Ajouter</button></div>
         </Fld>
       </>);
-      case 6: return(<><Fld label="Ce test permettra de trancher" hint="Un point par ligne"><Ta k="scopeYes" ph="- Les utilisateurs comprennent-ils les options ?&#10;- Le formulaire génère-t-il de la friction ?"/></Fld><Fld label="Ce test ne permettra PAS de décider" hint="Un point par ligne"><Ta k="scopeNo" ph="- L'impact réel sur le taux de conversion&#10;- Le comportement sur mobile"/></Fld></>);
-      case 7: return(<><Fld label="Critères de recrutement"><Ta k="participantCriteria" ph="Adultes 25-45 ans, achat en ligne mensuel..."/></Fld><Fld label="Nombre de participants"><In k="participantCount" ph="Ex : 6 participants"/></Fld><Fld label="Segments cibles"><Ta k="segments" ph="3 nouveaux / 3 récurrents" rows={2}/></Fld><Fld label="Maturité digitale"><In k="maturityLevel" ph="Utilisateurs réguliers du e-commerce"/></Fld><Fld label="Expérience préalable produit"><In k="priorExperience" ph="N'ayant jamais utilisé notre plateforme"/></Fld></>);
-      case 8: return(<><Fld label="Format"><div className="flex gap-2">{["Remote","Présentiel","Hybride"].map(f=>(<button key={f} onClick={()=>setD("format",f)} className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${briefData.format===f?"bg-indigo-600 text-white border-indigo-600":"bg-white text-gray-600 border-gray-200 hover:border-indigo-400"}`}>{f}</button>))}</div></Fld><Fld label="Mode de session"><div className="flex gap-2">{["Modéré","Non-modéré"].map(f=>(<button key={f} onClick={()=>setD("sessionMode",f)} className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${briefData.sessionMode===f?"bg-indigo-600 text-white border-indigo-600":"bg-white text-gray-600 border-gray-200 hover:border-indigo-400"}`}>{f}</button>))}</div></Fld><Fld label="Durée par session"><In k="duration" ph="60 minutes"/></Fld><Fld label="Outils"><Ta k="tools" ph="Maze, Lookback, Figma..." rows={2}/></Fld></>);
-      case 9: return(<><Fld label="Déroulé de la session"><Ta k="sessionPlan" ph="0-5 min : Accueil&#10;5-10 min : Contexte&#10;10-50 min : Tâches&#10;50-60 min : Debriefing"/></Fld><Fld label="Tâches / Scénarios"><Ta k="tasks" ph="Tâche 1 : Vous souhaitez commander..."/></Fld><Fld label="Guide d'entretien"><Ta k="interviewGuide" ph="- Qu'avez-vous ressenti à cette étape ?"/></Fld></>);
-      case 10: return(<><Fld label="Dates clés"><Ta k="keyDates" ph="- Validation brief : JJ/MM&#10;- Recrutement : JJ/MM&#10;- Sessions : JJ/MM&#10;- Restitution : JJ/MM"/></Fld><Fld label="Livrables attendus"><Ta k="deliverables" ph="- Rapport de synthèse&#10;- Verbatims annotés&#10;- Recommandations"/></Fld></>);
-      case 11: return(<><Fld label="Risques identifiés"><Ta k="risks" ph="Difficulté de recrutement sur ce profil..."/></Fld><Fld label="Contraintes"><Ta k="constraints" ph="Prototype incomplet sur l'étape de paiement..."/></Fld></>);
+      case 6: return(<><Fld label="Ce test permettra de trancher" hint="Un point par ligne"><BTa value={briefData.scopeYes} onChange={e=>setD("scopeYes",e.target.value)} ph="- Les utilisateurs comprennent-ils les options ?&#10;- Le formulaire génère-t-il de la friction ?"/></Fld><Fld label="Ce test ne permettra PAS de décider" hint="Un point par ligne"><BTa value={briefData.scopeNo} onChange={e=>setD("scopeNo",e.target.value)} ph="- L'impact réel sur le taux de conversion&#10;- Le comportement sur mobile"/></Fld></>);
+      case 7: return(<><Fld label="Critères de recrutement"><BTa value={briefData.participantCriteria} onChange={e=>setD("participantCriteria",e.target.value)} ph="Adultes 25-45 ans, achat en ligne mensuel..."/></Fld><Fld label="Nombre de participants"><BIn value={briefData.participantCount} onChange={e=>setD("participantCount",e.target.value)} ph="Ex : 6 participants"/></Fld><Fld label="Segments cibles"><BTa value={briefData.segments} onChange={e=>setD("segments",e.target.value)} ph="3 nouveaux / 3 récurrents" rows={2}/></Fld><Fld label="Maturité digitale"><BIn value={briefData.maturityLevel} onChange={e=>setD("maturityLevel",e.target.value)} ph="Utilisateurs réguliers du e-commerce"/></Fld><Fld label="Expérience préalable produit"><BIn value={briefData.priorExperience} onChange={e=>setD("priorExperience",e.target.value)} ph="N'ayant jamais utilisé notre plateforme"/></Fld></>);
+      case 8: return(<><Fld label="Format"><div className="flex gap-2">{["Remote","Présentiel","Hybride"].map(f=>(<button key={f} onClick={()=>setD("format",f)} className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${briefData.format===f?"bg-indigo-600 text-white border-indigo-600":"bg-white text-gray-600 border-gray-200 hover:border-indigo-400"}`}>{f}</button>))}</div></Fld><Fld label="Mode de session"><div className="flex gap-2">{["Modéré","Non-modéré"].map(f=>(<button key={f} onClick={()=>setD("sessionMode",f)} className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${briefData.sessionMode===f?"bg-indigo-600 text-white border-indigo-600":"bg-white text-gray-600 border-gray-200 hover:border-indigo-400"}`}>{f}</button>))}</div></Fld><Fld label="Durée par session"><BIn value={briefData.duration} onChange={e=>setD("duration",e.target.value)} ph="60 minutes"/></Fld><Fld label="Outils"><BTa value={briefData.tools} onChange={e=>setD("tools",e.target.value)} ph="Maze, Lookback, Figma..." rows={2}/></Fld></>);
+      case 9: return(<><Fld label="Déroulé de la session"><BTa value={briefData.sessionPlan} onChange={e=>setD("sessionPlan",e.target.value)} ph="0-5 min : Accueil&#10;5-10 min : Contexte&#10;10-50 min : Tâches&#10;50-60 min : Debriefing"/></Fld><Fld label="Tâches / Scénarios"><BTa value={briefData.tasks} onChange={e=>setD("tasks",e.target.value)} ph="Tâche 1 : Vous souhaitez commander..."/></Fld><Fld label="Guide d'entretien"><BTa value={briefData.interviewGuide} onChange={e=>setD("interviewGuide",e.target.value)} ph="- Qu'avez-vous ressenti à cette étape ?"/></Fld></>);
+      case 10: return(<><Fld label="Dates clés"><BTa value={briefData.keyDates} onChange={e=>setD("keyDates",e.target.value)} ph="- Validation brief : JJ/MM&#10;- Recrutement : JJ/MM&#10;- Sessions : JJ/MM&#10;- Restitution : JJ/MM"/></Fld><Fld label="Livrables attendus"><BTa value={briefData.deliverables} onChange={e=>setD("deliverables",e.target.value)} ph="- Rapport de synthèse&#10;- Verbatims annotés&#10;- Recommandations"/></Fld></>);
+      case 11: return(<><Fld label="Risques identifiés"><BTa value={briefData.risks} onChange={e=>setD("risks",e.target.value)} ph="Difficulté de recrutement sur ce profil..."/></Fld><Fld label="Contraintes"><BTa value={briefData.constraints} onChange={e=>setD("constraints",e.target.value)} ph="Prototype incomplet sur l'étape de paiement..."/></Fld></>);
     }
   };
 
@@ -2849,7 +2960,13 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Le JSON doit 
               <h1 className="font-bold text-gray-800">{STEPS[briefStep-1].icon} {STEPS[briefStep-1].label}</h1>
               <p className="text-xs text-gray-400">Étape {briefStep} sur {STEPS.length}</p>
             </div>
-            <button onClick={()=>{setAiContent(null);openSlides();}} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center gap-2">✦ Générer les slides</button>
+            <div className="flex items-center gap-2">
+              <input ref={briefPdfRef} type="file" accept="application/pdf" onChange={importProtocolPDFForBrief} style={{display:"none"}}/>
+              <button onClick={()=>briefPdfRef.current?.click()} disabled={briefPdfImporting} className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 text-sm font-medium hover:border-indigo-400 flex items-center gap-2 disabled:opacity-50">
+                {briefPdfImporting?"Import...":"📄 Importer Protocole PDF"}
+              </button>
+              <button onClick={()=>{setAiContent(null);openSlides();}} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 flex items-center gap-2">✦ Générer les slides</button>
+            </div>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5"><div className="bg-indigo-600 h-1.5 rounded-full transition-all" style={{width:`${progress}%`}}/></div>
         </div>
