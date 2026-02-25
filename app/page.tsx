@@ -1452,7 +1452,17 @@ const ProtocolChat = ({onProtocolReady, onBack}) => {
 };
 
 /* ━━━ SLIDES SCREEN ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, setAiContent, openSlides, onBack, briefData}) => {
+const BRIEF_REVIEW_SYSTEM = `Tu es un UX Researcher senior expert en briefs de validation. Tu révises le contenu d'un brief de présentation pour le rendre fidèle au protocole de test.
+
+INSTRUCTIONS :
+- Extrais les informations exactes du protocole (hypothèses précises, intitulés des tâches réels, KPIs chiffrés, critères de recrutement)
+- Réécris chaque champ du brief pour qu'il reflète ces informations concrètes — pas de généralisations
+- Les validationChecks doivent être dérivés directement des hypothèses testables du protocole
+- Les titres restent courts (3-6 mots max), les corps de texte restent synthétiques
+- Conserve TOUTES les clés JSON sans exception — y compris les valeurs numériques (tailles de polices, etc.)
+- Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte avant ou après`;
+
+const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, setAiContent, openSlides, onBack, briefData, protocol}) => {
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
@@ -1474,7 +1484,7 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
       const origIdx = slideIdx;
       for (let i = 0; i < slides.length; i++) {
         setSlideIdx(i);
-        await new Promise(r => setTimeout(r, 180));
+        await new Promise(r => setTimeout(r, 200));
         if (!slideContainerRef.current) continue;
         const canvas = await window.html2canvas(slideContainerRef.current, {
           scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false,
@@ -1486,9 +1496,7 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
       setSlideIdx(origIdx);
       const filename = ((briefData?.projectName)||"brief").replace(/[^a-z0-9]/gi,"_").toLowerCase()+"_slides.pdf";
       pdf.save(filename);
-    } catch(e) {
-      alert(`Erreur export PDF : ${e.message}`);
-    }
+    } catch(e) { alert(`Erreur export PDF : ${e.message}`); }
     setPdfExporting(false);
   };
 
@@ -1528,8 +1536,9 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
           {slides.map((s,i)=>(<button key={i} onClick={()=>setSlideIdx(i)} style={{height:24,padding:"0 9px",borderRadius:5,border:"none",cursor:"pointer",fontSize:8,fontWeight:800,background:i===slideIdx?T.accent:T.bg3,color:i===slideIdx?"#fff":T.muted,transition:"all .15s"}}>{s.label}</button>))}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          {supervising&&<div style={{display:"flex",alignItems:"center",gap:6,background:`${T.accent}10`,border:`1px solid ${T.accent}30`,borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:12}}>{"\u2736"}</span><span style={{fontSize:10,color:T.accent,fontWeight:600}}>Supervision IA</span></div>}
-          {!supervising&&aiContent&&<div style={{display:"flex",alignItems:"center",gap:6,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:10}}>✓</span><span style={{fontSize:10,color:T.ok,fontWeight:600}}>Supervise</span></div>}
+          {supervising&&!aiContent&&<div style={{display:"flex",alignItems:"center",gap:6,background:`${T.accent}10`,border:`1px solid ${T.accent}30`,borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:12}}>{"\u2736"}</span><span style={{fontSize:10,color:T.accent,fontWeight:600}}>Génération...</span></div>}
+          {supervising&&aiContent&&<div style={{display:"flex",alignItems:"center",gap:6,background:`${T.warn}14`,border:`1px solid ${T.warn}40`,borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:12}}>{"\u2736"}</span><span style={{fontSize:10,color:T.warn,fontWeight:700}}>Révision IA...</span></div>}
+          {!supervising&&aiContent&&<div style={{display:"flex",alignItems:"center",gap:6,background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:20,padding:"4px 12px"}}><span style={{fontSize:10}}>✓</span><span style={{fontSize:10,color:T.ok,fontWeight:600}}>{protocol?"Supervisé &amp; Révisé":"Supervisé"}</span></div>}
           <span style={{fontSize:11,color:T.muted}}>{slideIdx+1} / {slides.length}</span>
           <button onClick={exportSlidesPDF} disabled={pdfExporting||supervising}
             style={{background:T.bg,color:pdfExporting?T.muted:T.ink2,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 14px",cursor:pdfExporting||supervising?"default":"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:6,opacity:supervising?.5:1}}>
@@ -1544,14 +1553,23 @@ const SlidesScreen = ({slides, slideIdx, setSlideIdx, supervising, aiContent, se
 
       <div style={{flex:1,display:"flex",overflow:"hidden"}}>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px 24px",gap:16}}>
-          {supervising&&slideIdx===0
+          {supervising&&!aiContent
             ? <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:16,textAlign:"center"}}>
                 <div style={{fontSize:32}}>{"\u2736"}</div>
-                <div style={{fontFamily:T.ff,fontSize:14,fontWeight:700,color:T.ink}}>Claude supervise la mise en forme</div>
-                <div style={{fontFamily:T.ff,fontSize:11,color:T.muted,maxWidth:320}}>Reformulation des titres, hierarchie typographique, synthese du contenu.</div>
+                <div style={{fontFamily:T.ff,fontSize:14,fontWeight:700,color:T.ink}}>Génération du brief en cours...</div>
+                <div style={{fontFamily:T.ff,fontSize:11,color:T.muted,maxWidth:320}}>Reformulation des titres, hiérarchie typographique, synthèse du contenu.</div>
               </div>
-            : <div ref={slideContainerRef} style={{width:"100%",maxWidth:panelOpen?780:960,aspectRatio:"16/9",borderRadius:12,overflow:"hidden",boxShadow:"0 4px 6px rgba(0,0,0,.04),0 20px 50px rgba(0,0,0,.10),0 0 0 1px #E5E7EB",transition:"max-width .25s"}}>
-                {slides[slideIdx].render()}
+            : <div style={{position:"relative",width:"100%",maxWidth:panelOpen?780:960,transition:"max-width .25s"}}>
+                <div ref={slideContainerRef} style={{width:"100%",aspectRatio:"16/9",borderRadius:12,overflow:"hidden",boxShadow:"0 4px 6px rgba(0,0,0,.04),0 20px 50px rgba(0,0,0,.10),0 0 0 1px #E5E7EB"}}>
+                  {slides[slideIdx].render()}
+                </div>
+                {supervising&&aiContent&&(
+                  <div style={{position:"absolute",inset:0,borderRadius:12,background:"rgba(255,251,235,0.55)",backdropFilter:"blur(1px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10,pointerEvents:"none"}}>
+                    <div style={{fontSize:22}}>{"\u2736"}</div>
+                    <div style={{fontFamily:T.ff,fontSize:13,fontWeight:800,color:T.warn}}>Révision par l'agent IA...</div>
+                    <div style={{fontFamily:T.ff,fontSize:10,color:"#92400E",maxWidth:260,textAlign:"center",lineHeight:1.6}}>L'agent UX researcher vérifie la fidélité au protocole et affine le contenu.</div>
+                  </div>
+                )}
               </div>
           }
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",width:"100%",maxWidth:panelOpen?780:960}}>
@@ -2751,6 +2769,7 @@ export default function App() {
       risks:              proto.methodology?.risks       || "",
       constraints:        m.constraints      || "",
     }));
+    setProtocol(proto);
     setScreen("builder");
   };
 
@@ -2825,7 +2844,26 @@ Le titre methoTitle doit refleter le choix de layout (ex: "Comment se deroule la
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Le JSON doit commencer par { et finir par } :
 {"coverTitle":"","coverTitleSize":24,"coverSub":"","coverKeyQuestion":"","coverDecision":"","coverSummary":"","enjeuTitle":"","enjeuTitleSize":19,"enjeuSub":"","enjeuIssue":"","enjeuImpact":"","enjeuStrategy":"","objPrimary":"","objSecondary":"","objHypotheses":"","scopeTitle":"","scopeSub":"","scopeYes":"","scopeNo":"","participantTitle":"","participantCriteria":"","participantMaturity":"","participantExperience":"","participantSegments":"","methoTitle":"","methoLayout":"timeline","methoSteps":[],"methoFormat":"","methoMode":"","methoDuration":"","methoTools":"","sessionPlan":"","sessionTasks":"","sessionGuide":"","planningTitle":"","planningDates":"","planningDeliverables":"","planningRisks":"","planningConstraints":"","validationTitle":"","validationTitleAccent":"","validationSub":"","validationChecks":[],"validationProject":"","validationQuestion":""}`;
       const text = await callClaude([{role:"user",content:prompt}]);
-      setAiContent(JSON.parse(text.replace(/```json|```/g,"").trim()));
+      const initial = JSON.parse(text.replace(/```json|```/g,"").trim());
+      setAiContent(initial);
+
+      // Phase 2 — révision par l'agent UX researcher si un protocole est disponible
+      if (protocol) {
+        try {
+          const snap = {
+            title: protocol.title, objective: protocol.objective,
+            hypotheses: protocol.hypotheses,
+            tasks: protocol.tasks?.map(t=>({id:t.id,title:t.title,scenario:t.scenario,instruction:t.instruction,successCriteria:t.successCriteria})),
+            kpis: protocol.kpis, recruitingCriteria: protocol.recruitingCriteria,
+            screeners: protocol.screeners, duration: protocol.duration, platform: protocol.platform,
+          };
+          const reviewPrompt = `PROTOCOLE DE RÉFÉRENCE :\n${JSON.stringify(snap)}\n\nBRIEF GÉNÉRÉ À RÉVISER :\n${JSON.stringify(initial)}\n\nRévise le brief pour qu'il reflète fidèlement le protocole. Conserve exactement les mêmes clés JSON. Réponds UNIQUEMENT en JSON valide.`;
+          const reviewReply = await callClaude([{role:"user", content:reviewPrompt}], BRIEF_REVIEW_SYSTEM, 8000);
+          const clean = reviewReply.replace(/```json|```/g,"").trim();
+          const s = clean.indexOf("{"), e2 = clean.lastIndexOf("}");
+          if (s !== -1 && e2 !== -1) setAiContent(JSON.parse(clean.slice(s, e2+1)));
+        } catch(_) {} // révision échouée — garde le contenu initial
+      }
     } catch(e) { setAiContent(null); }
     setSupervising(false);
   };
@@ -2939,6 +2977,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans backticks. Le JSON doit 
     openSlides={openSlides}
     onBack={()=>setScreen("builder")}
     briefData={briefData}
+    protocol={protocol}
   />;
 
   /* BUILDER */
