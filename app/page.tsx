@@ -663,27 +663,186 @@ const ProtocolViewer = ({protocol, onEdit, onUseBrief, onAnalyse, onBack}) => {
 
   useEffect(() => { chatBottomRef.current?.scrollIntoView({behavior:"smooth"}); }, [chatMessages]);
 
-  /* ── Export PDF ── */
-  const exportProtocolPDF = () => {
-    const qText = q => typeof q==="string" ? q : (q?.question||"");
-    const qFmt  = q => typeof q==="object" && q?.responseFormat ? `<div class="q-fmt">↳ ${q.responseFormat}</div>` : "";
-    const escHtml = s => String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    const body = `
-<div style="border-bottom:3px solid #4F46E5;padding-bottom:22px;margin-bottom:36px">
-  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#6B7280;margin-bottom:8px">Protocole de test utilisateur</div>
-  <h1>${escHtml(proto.title)}</h1>
-  <p class="meta" style="margin-top:4px">${escHtml(proto.platform)} · ${escHtml(proto.duration)}</p>
-  ${proto.objective?`<p style="margin-top:14px;font-size:14px;background:#EEF2FF;color:#374151;padding:14px 18px;border-radius:10px;border-left:4px solid #4F46E5">${escHtml(proto.objective)}</p>`:""}
-</div>
-${proto.hypotheses?.length?`<div class="section no-break"><h2>Hypothèses de recherche</h2>${proto.hypotheses.map((h,i)=>`<div class="card card-accent"><span class="badge">H${i+1}</span> ${escHtml(h)}</div>`).join("")}</div>`:""}
-${(proto.recruitingCriteria?.length||proto.screeners?.length)?`<div class="section"><h2>Recrutement</h2>${proto.recruitingCriteria?.length?`<h3>Critères d'inclusion / exclusion</h3>${proto.recruitingCriteria.map(c=>`<div class="q-item"><p>• ${escHtml(c)}</p></div>`).join("")}`:""} ${proto.screeners?.length?`<h3 style="margin-top:16px">Screeners</h3>${proto.screeners.map((s,i)=>`<div class="q-item no-break"><p><strong>Q${i+1}.</strong> ${escHtml(s.question)}</p><p class="q-fmt">Format : ${escHtml(s.responseFormat)}</p><p style="font-size:11px;color:#059669;margin-top:4px">✓ ${escHtml(s.qualifying||"—")}</p><p style="font-size:11px;color:#DC2626">✕ ${escHtml(s.disqualifying||"—")}</p></div>`).join("")}`:""}  </div>`:""}
-${proto.intro||proto.warmUpQuestions?.length?`<div class="section"><h2>Introduction &amp; Warm-up</h2>${proto.intro?`<h3>Script d'introduction</h3><div class="card" style="white-space:pre-line;line-height:1.8">${escHtml(proto.intro)}</div>`:""}${proto.warmUpQuestions?.length?`<h3 style="margin-top:16px">Questions warm-up</h3>${proto.warmUpQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}`:""}</div>`:""}
-${proto.tasks?.length?`<div class="section"><h2>Tâches &amp; Scénarios</h2>${proto.tasks.map(task=>`<div class="task-card no-break"><div class="task-header"><span>Tâche ${task.id} — ${escHtml(task.title)}</span>${task.metrics?.length?`<span style="font-size:11px;font-weight:400;opacity:.65">${task.metrics.join(" · ")}</span>`:""}</div><div class="task-body">${task.scenario?`<p><strong>Scénario :</strong> ${escHtml(task.scenario)}</p>`:""}<p><strong>Instruction :</strong> ${escHtml(task.instruction||"—")}</p>${task.thinkAloudPrompt?`<p style="background:#FFFBEB;padding:8px 12px;border-radius:6px;font-size:12px"><strong style="color:#D97706">💬 Think-aloud :</strong> ${escHtml(task.thinkAloudPrompt)}</p>`:""} ${task.successCriteria?`<p style="color:#059669"><strong>✓ Critère de succès :</strong> ${escHtml(task.successCriteria)}</p>`:""} ${task.postTaskQuestions?.length?`<div><h3>Questions post-tâche</h3>${task.postTaskQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}</div>`:""} ${task.followUpQuestions?.length?`<div><h3>Questions de relance</h3>${task.followUpQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}</div>`:""}</div></div>`).join("")}</div>`:""}
-${proto.closingQuestions?.length?`<div class="section no-break"><h2>Questions de clôture</h2>${proto.closingQuestions.map(q=>`<div class="q-item"><p>${escHtml(qText(q))}</p>${qFmt(q)}</div>`).join("")}</div>`:""}
-${proto.kpis?`<div class="section no-break"><h2>KPIs &amp; Mesures</h2><div class="three-col" style="margin-top:12px"><div><h3 style="color:#4F46E5">Quantitatifs</h3>${(proto.kpis.quantitatifs||[]).map(k=>`<div class="card"><p style="font-weight:600">${escHtml(k.label)}</p>${k.cible?`<span class="badge" style="margin-top:4px;display:inline-block">Cible : ${escHtml(k.cible)}</span>`:""}</div>`).join("")}</div><div><h3>Qualitatifs</h3>${(proto.kpis.qualitatifs||[]).map(q=>`<div class="card"><p>• ${escHtml(q)}</p></div>`).join("")}</div><div><h3 style="color:#059669">KPI Business</h3>${(proto.kpis.kpiBusiness||[]).map(k=>`<div class="card"><p style="font-weight:600">${escHtml(k.label)}</p>${k.lien?`<p class="meta">${escHtml(k.lien)}</p>`:""}</div>`).join("")}</div></div></div>`:""}
-${proto.methodology?`<div class="section"><h2>Risques &amp; Plan d'analyse</h2>${proto.methodology.risks?`<h3>Risques méthodologiques</h3><div class="card card-danger" style="white-space:pre-line">${escHtml(proto.methodology.risks)}</div>`:""} ${proto.methodology.analysisPlan?`<h3>Plan d'analyse</h3><div class="card card-accent" style="white-space:pre-line">${escHtml(proto.methodology.analysisPlan)}</div>`:""}</div>`:""}
-    `;
-    openPrintWindow(proto.title||"Protocole", body);
+  /* ── Export PDF (jsPDF — texte sélectionnable) ── */
+  const exportProtocolPDF = async () => {
+    try {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
+      const W = 210, H = 297, ML = 15, MR = 15, MT = 20, MB = 20;
+      const CW = W - ML - MR;
+      let y = MT;
+
+      const qTxt = q => typeof q === "string" ? q : (q?.question || "");
+      const qFmtStr = q => typeof q === "object" && q?.responseFormat ? `> Format : ${q.responseFormat}` : null;
+      const need = (h) => { if (y + h > H - MB) { pdf.addPage(); y = MT; } };
+      const sf = (sz, style = "normal", rgb = [17,24,39]) => {
+        pdf.setFontSize(sz); pdf.setFont("helvetica", style); pdf.setTextColor(...rgb);
+      };
+      const txt = (text, sz, style = "normal", rgb = [17,24,39], x = ML, maxW = CW) => {
+        if (!text && text !== 0) return;
+        sf(sz, style, rgb);
+        const lines = pdf.splitTextToSize(String(text), maxW);
+        const lh = sz * 0.3528 * 1.5;
+        need(lines.length * lh + 2);
+        lines.forEach((ln, i) => pdf.text(ln, x, y + i * lh));
+        y += lines.length * lh + 1;
+      };
+      const colorBox = (text, bg, border, tRgb = [55,65,81], sz = 10) => {
+        if (!text) return;
+        sf(sz, "normal", tRgb);
+        const lines = pdf.splitTextToSize(String(text), CW - 8);
+        const lh = sz * 0.3528 * 1.5;
+        const bh = lines.length * lh + 8;
+        need(bh + 3);
+        pdf.setFillColor(...bg); pdf.setDrawColor(...border); pdf.setLineWidth(0.3);
+        pdf.roundedRect(ML, y - 1, CW, bh, 2, 2, "FD");
+        pdf.setFillColor(...border); pdf.rect(ML, y - 1, 2, bh, "F");
+        lines.forEach((ln, i) => pdf.text(ln, ML + 5, y + 4 + i * lh));
+        y += bh + 2;
+      };
+      const secH = (title) => {
+        need(16); y += 5;
+        pdf.setDrawColor(79,70,229); pdf.setLineWidth(0.4); pdf.line(ML, y, ML + CW, y);
+        y += 5; txt(title, 8, "bold", [79,70,229]); y += 2;
+      };
+      const subH = (title) => { y += 2; txt(title, 9, "bold", [55,65,81]); y += 1; };
+      const qItem = (q, label) => {
+        txt(`${label} ${qTxt(q)}`, 10, "normal", [17,24,39]);
+        const fmt = qFmtStr(q);
+        if (fmt) txt(fmt, 9, "italic", [107,114,128], ML + 4, CW - 4);
+        y += 0.5;
+      };
+
+      /* ─ Couverture ─ */
+      pdf.setFillColor(79,70,229); pdf.rect(ML, y - 2, CW, 1.5, "F"); y += 2;
+      txt("PROTOCOLE DE TEST UTILISATEUR", 7, "bold", [107,114,128]); y += 1;
+      txt(proto.title || "Sans titre", 20, "bold", [17,24,39]); y += 2;
+      const metaStr = [proto.platform, proto.duration].filter(Boolean).join("  -  ");
+      if (metaStr) txt(metaStr, 10, "normal", [107,114,128]);
+      if (proto.objective) { y += 3; colorBox(proto.objective, [238,242,255], [199,210,254]); }
+      y += 5; pdf.setDrawColor(229,231,235); pdf.setLineWidth(0.3); pdf.line(ML, y, ML + CW, y);
+
+      /* ─ Hypotheses ─ */
+      if (proto.hypotheses?.length) {
+        secH("HYPOTHESES DE RECHERCHE");
+        proto.hypotheses.forEach((h, i) => {
+          sf(10, "normal", [55,65,81]);
+          const lines = pdf.splitTextToSize(String(h), CW - 14);
+          const lh = 10 * 0.3528 * 1.5;
+          const bh = lines.length * lh + 8;
+          need(bh + 3);
+          pdf.setFillColor(238,242,255); pdf.setDrawColor(199,210,254); pdf.setLineWidth(0.3);
+          pdf.roundedRect(ML, y, CW, bh, 2, 2, "FD");
+          pdf.setFillColor(79,70,229); pdf.roundedRect(ML, y, 9, bh, 1, 1, "F");
+          sf(8, "bold", [255,255,255]); pdf.text(`H${i+1}`, ML + 2.5, y + bh / 2 + 1);
+          sf(10, "normal", [55,65,81]); lines.forEach((ln, j) => pdf.text(ln, ML + 12, y + 4 + j * lh));
+          y += bh + 4;
+        });
+      }
+
+      /* ─ Recrutement ─ */
+      if (proto.recruitingCriteria?.length || proto.screeners?.length) {
+        secH("RECRUTEMENT");
+        if (proto.recruitingCriteria?.length) {
+          subH("Criteres d'inclusion / exclusion");
+          proto.recruitingCriteria.forEach(c => {
+            if (!c) return;
+            sf(10, "normal", [17,24,39]);
+            const lines = pdf.splitTextToSize(String(c), CW - 5);
+            const lh = 10 * 0.3528 * 1.5;
+            need(lines.length * lh + 2);
+            pdf.text("-", ML, y); lines.forEach((ln, i) => pdf.text(ln, ML + 4, y + i * lh));
+            y += lines.length * lh + 1.5;
+          });
+        }
+        if (proto.screeners?.length) {
+          subH("Screeners");
+          proto.screeners.forEach((s, i) => {
+            need(24);
+            txt(`S${i+1}. ${s.question}`, 10, "bold", [17,24,39]);
+            txt(`Format : ${s.responseFormat || "—"}`, 9, "italic", [107,114,128], ML + 4, CW - 4);
+            if (s.qualifying)    txt(`Inclus : ${s.qualifying}`, 9, "normal", [5,150,105], ML + 4, CW - 4);
+            if (s.disqualifying) txt(`Exclus : ${s.disqualifying}`, 9, "normal", [180,35,35], ML + 4, CW - 4);
+            y += 2;
+          });
+        }
+      }
+
+      /* ─ Introduction & Warm-up ─ */
+      if (proto.intro || proto.warmUpQuestions?.length) {
+        secH("INTRODUCTION & WARM-UP");
+        if (proto.intro) { subH("Script d'introduction"); colorBox(proto.intro, [243,244,246], [209,213,219]); }
+        if (proto.warmUpQuestions?.length) {
+          subH("Questions warm-up");
+          proto.warmUpQuestions.forEach((q, i) => qItem(q, `W${i+1}.`));
+        }
+      }
+
+      /* ─ Taches ─ */
+      if (proto.tasks?.length) {
+        secH("TACHES & SCENARIOS");
+        proto.tasks.forEach(task => {
+          need(24); y += 2;
+          pdf.setFillColor(79,70,229); pdf.roundedRect(ML, y, CW, 8, 2, 2, "F");
+          sf(11, "bold", [255,255,255]);
+          pdf.text(`Tache ${task.id} - ${task.title || ""}`, ML + 4, y + 5.5);
+          y += 11;
+          if (task.scenario)   { txt("Scenario :", 9, "bold", [55,65,81]); txt(task.scenario, 10, "normal", [17,24,39], ML + 4, CW - 4); y += 1; }
+          txt("Instruction :", 9, "bold", [55,65,81]);
+          txt(task.instruction || "—", 10, "normal", [17,24,39], ML + 4, CW - 4); y += 1;
+          if (task.thinkAloudPrompt) colorBox(`Think-aloud : ${task.thinkAloudPrompt}`, [255,251,235], [253,230,138], [120,53,15], 9);
+          if (task.successCriteria) { txt(`Critere de succes : ${task.successCriteria}`, 10, "normal", [5,150,105]); y += 1; }
+          if (task.postTaskQuestions?.length) { subH("Questions post-tache"); task.postTaskQuestions.forEach((q, i) => qItem(q, `PT${i+1}.`)); }
+          if (task.followUpQuestions?.length) { subH("Questions de relance"); task.followUpQuestions.forEach((q, i) => qItem(q, `R${i+1}.`)); }
+          y += 3;
+        });
+      }
+
+      /* ─ Cloture ─ */
+      if (proto.closingQuestions?.length) {
+        secH("QUESTIONS DE CLOTURE");
+        proto.closingQuestions.forEach((q, i) => qItem(q, `C${i+1}.`));
+      }
+
+      /* ─ KPIs ─ */
+      if (proto.kpis) {
+        secH("KPIS & MESURES");
+        [
+          { title: "Quantitatifs", items: proto.kpis.quantitatifs || [], rgb: [79,70,229] },
+          { title: "Qualitatifs",  items: proto.kpis.qualitatifs  || [], rgb: [55,65,81]  },
+          { title: "KPI Business", items: proto.kpis.kpiBusiness  || [], rgb: [5,150,105] },
+        ].forEach(s => {
+          if (!s.items.length) return;
+          subH(s.title);
+          s.items.forEach(k => {
+            const label = typeof k === "string" ? k : k?.label;
+            const sub   = typeof k === "object" ? (k?.cible || k?.lien) : null;
+            if (label) txt(label, 10, "bold", s.rgb);
+            if (sub)   txt(sub, 9, "italic", [107,114,128], ML + 4, CW - 4);
+          });
+        });
+      }
+
+      /* ─ Risques & Plan d'analyse ─ */
+      if (proto.methodology) {
+        secH("RISQUES & PLAN D'ANALYSE");
+        if (proto.methodology.risks) { subH("Risques methodologiques"); colorBox(proto.methodology.risks, [254,242,242], [252,165,165], [153,27,27]); }
+        if (proto.methodology.analysisPlan) { subH("Plan d'analyse"); colorBox(proto.methodology.analysisPlan, [238,242,255], [199,210,254]); }
+      }
+
+      /* ─ Pagination ─ */
+      const total = pdf.internal.getNumberOfPages();
+      for (let p = 1; p <= total; p++) {
+        pdf.setPage(p); sf(7, "normal", [107,114,128]);
+        pdf.text(`${p} / ${total}`, W - MR, H - 8, { align: "right" });
+        pdf.text(proto.title || "Protocole", ML, H - 8);
+      }
+
+      pdf.save(`${(proto.title || "protocole").replace(/[^a-z0-9\-_]/gi, "_")}_protocole.pdf`);
+    } catch (e) {
+      alert(`Erreur generation PDF : ${e.message}`);
+    }
   };
 
   /* ── Inline edit ── */
